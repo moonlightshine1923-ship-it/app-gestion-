@@ -1,0 +1,7 @@
+node_modules/
+.env
+uploads/
+.env.example
+check-db
+"Cmd creation"
+*.log
