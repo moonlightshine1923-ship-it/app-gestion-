@@ -949,27 +949,27 @@ function renderDossierHTML(a, ad, info) {
 
   <div class="dossier">
     <div class="page p1">
-      <input type="text" style="left:21%; top:16.8%; width:75%; height:2.2%" value="${nomPrenomFr}" />
-      <input type="text" style="left:29%; top:20%; width:67%; height:2.2%" value="${dateNaissanceDMY}" title="Nom de société" />
-      <input type="text" style="left:13%; top:22.9%; width:83%; height:2.2%" value="${adresse}" title="Adresse" />
-      <input type="text" style="left:15.5%; top:26.2%; width:31%; height:2.2%" value="${telephone}" />
-      <input type="text" style="left:57%; top:26.2%; width:41%; height:2.2%" value="${email}" title="email" />
+      <input type="text" style="left:21%; top:19.8%; width:75%; height:2.2%" value="${nomPrenomFr}" />
+      <input type="text" style="left:29%; top:23.2%; width:67%; height:2.2%" value="${dateNaissanceDMY}"/>
+      <input type="text" style="left:13%; top:26%; width:83%; height:2.2%" value="${adresse}" title="Adresse" />
+      <input type="text" style="left:15.5%; top:29.8%; width:31%; height:2.2%" value="${telephone}" />
+      <input type="text" style="left:57%; top:29.6%; width:41%; height:2.2%" value="${email}" title="email" />
       
       
-      <input type="text" style="left:40.5%; top:29.5%; width:14.5%; height:2.0%" value="${paiementRef}" />
+      <input type="text" style="left:38.5%; top:32.8%; width:14.5%; height:2.0%" value="${paiementRef}" />
      
-      <input type="text" style="left:20%; top:37.2%; width:35%; height:2.2%" value="${paiementBanque}" />
-      <input type="text" style="left:79.5%; top:37.2%; width:17%; height:2.2%" value="" />
-      <input type="text" style="left:13.7%; top:40.9%; width:27%; height:2.2%" value="" />
-      <input type="text" style="left:71%; top:40.7%; width:26%; height:2.2%" value="" />
+      <input type="text" style="left:20%; top:41.2%; width:35%; height:2.2%"  />
+      <input type="text" style="left:79.5%; top:41.2%; width:17%; height:2.2%" value="" />
+      <input type="text" style="left:13.7%; top:44.7%; width:27%; height:2.2%" value="" />
+      <input type="text" style="left:71%; top:44.7%; width:26%; height:2.2%" value="" />
 
 
-      <input type="text" style="left:24.5%; top:76.8%; width:31%; height:2.2%" value="${matricule}" />
-      <input type="text" style="left:22.5%; top:79.8%; width:33%; height:2.2%" value="${dateAdhFr}" />
-      <input type="text" style="left:22.5%; top:82.8%; width:33%; height:2.2%" value="${typeMembreFr}" />
-      <input type="text" style="left:69%; top:76.8%; width:27%; height:2.2%" value="${wilayaFr}" />
-      <input type="text" style="left:69%; top:79.8%; width:27%; height:2.2%" value="${expFr}" />
-      <input type="text" style="left:69%; top:82.8%; width:27%; height:2.2%"  />
+      <input type="text" style="left:24.5%; top:75.8%; width:31%; height:2.2%" value="${matricule}" />
+      <input type="text" style="left:24.5%; top:78.8%; width:27%; height:2.2%" value="${dateAdhFr}" />
+      <input type="text" style="left:24.5%; top:81.8%; width:27%; height:2.2%" value="${typeMembreFr}" />
+      <input type="text" style="left:69%; top:75.8%; width:27%; height:2.2%" value="${wilayaFr}" />
+      <input type="text" style="left:69%; top:78.8%; width:27%; height:2.2%" value="${expFr}" />
+      
     </div>
 
     <div class="page p2 rtl">
