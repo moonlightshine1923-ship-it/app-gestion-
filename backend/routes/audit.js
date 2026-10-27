@@ -5,7 +5,7 @@ import { authenticate, authorize } from '../middleware/auth.js';
 const router = express.Router();
 
 // Route visible only by the president
-router.get('/', authenticate, authorize('president'), async (req, res) => {
+router.get('/', authenticate, authorize('president', 'perm:audit_view', 'perm:audit_edit'), async (req, res) => {
   try {
     const { q, action, limit = 100, offset = 0 } = req.query;
     let sql = 'SELECT * FROM audit_logs WHERE 1=1';

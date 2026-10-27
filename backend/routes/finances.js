@@ -41,7 +41,7 @@ const MOTIFS_SORTIE = [
   { code: 'frais_application', label: "Frais d'application" },
   { code: 'autre', label: 'Autre' },
 ];
-const EBANKING_MONTANT = 2380;
+const EBANKING_MONTANT = 2000;
 const CPA_FRAIS_APP_MONTANT = 1071;
 
 // ✅ 22/09/2026 : accepte « 117226,34 » (virgule FR), « 117 226,34 » (espaces),
@@ -208,7 +208,7 @@ export async function ensureMonthlyFees() {
           }
         }
 
-        // BDL Frais ebanking (2380 DA chaque fin de mois)
+        // BDL Frais ebanking (2000 DA chaque fin de mois)
         const logBdl = await get(
           `SELECT mois FROM finance_frais_mensuels_log WHERE compte_code = 'BDL' AND nature = 'ebanking' AND mois = ?`,
           [moisKey]
@@ -229,7 +229,7 @@ export async function ensureMonthlyFees() {
             await run(
               `INSERT INTO finance_mouvements (compte_code, sens, nature, montant, date_mouvement, motif, observation)
                VALUES (?, ?, ?, ?, ?, ?, ?)`,
-              ['BDL', 'sortie', 'ebanking', EBANKING_MONTANT, dateStr, 'Frais ebanking (fin de mois)', 'Déduction automatique fin de mois (2 380 DA)']
+              ['BDL', 'sortie', 'ebanking', EBANKING_MONTANT, dateStr, 'Frais ebanking (fin de mois)', 'Déduction automatique fin de mois (2 000 DA)']
             );
           }
         }
@@ -357,7 +357,7 @@ const SELECT_MOUV = `
   LEFT JOIN users u ON u.id = m.created_by
 `;
 
-router.get('/meta', authenticate, authorize('admin', 'president'), (_req, res) => {
+router.get('/meta', authenticate, authorize('admin', 'president', 'perm:finances_view', 'perm:finances_edit'), (_req, res) => {
   res.json({
     comptes: COMPTES,
     naturesEntree: [
@@ -370,7 +370,7 @@ router.get('/meta', authenticate, authorize('admin', 'president'), (_req, res) =
   });
 });
 
-router.get('/dashboard', authenticate, authorize('admin', 'president'), async (req, res) => {
+router.get('/dashboard', authenticate, authorize('admin', 'president', 'perm:finances_view', 'perm:finances_edit'), async (req, res) => {
   try {
     await ensureFinanceSchema();
     const comptes = await getComptesWithSoldes();
@@ -410,7 +410,7 @@ router.get('/dashboard', authenticate, authorize('admin', 'president'), async (r
   }
 });
 
-router.get('/comptes', authenticate, authorize('admin', 'president'), async (req, res) => {
+router.get('/comptes', authenticate, authorize('admin', 'president', 'perm:finances_view', 'perm:finances_edit'), async (req, res) => {
   try {
     await ensureFinanceSchema();
     res.json(await getComptesWithSoldes());
@@ -455,17 +455,17 @@ async function handleUpdateCompte(req, res, codeRaw, bodyObj) {
   }
 }
 
-router.patch('/comptes/:code', authenticate, authorize('admin', 'president'), (req, res) =>
+router.patch('/comptes/:code', authenticate, authorize('admin', 'president', 'perm:finances_edit'), (req, res) =>
   handleUpdateCompte(req, res, req.params.code, req.body)
 );
 
 // ✅ SECOURS POST (22/09/2026) — PATCH parfois intercepté par le pare-feu
 // de l'hébergeur (erreur « HTML reçu au lieu de JSON »). Même effet en POST.
-router.post('/comptes/update', authenticate, authorize('admin', 'president'), (req, res) =>
+router.post('/comptes/update', authenticate, authorize('admin', 'president', 'perm:finances_edit'), (req, res) =>
   handleUpdateCompte(req, res, req.body?.code, req.body || {})
 );
 
-router.get('/adherents-payes', authenticate, authorize('admin', 'president'), async (req, res) => {
+router.get('/adherents-payes', authenticate, authorize('admin', 'president', 'perm:finances_view', 'perm:finances_edit'), async (req, res) => {
   try {
     await ensureFinanceSchema();
     const mode = String(req.query.mode || '').toLowerCase();
@@ -505,7 +505,7 @@ router.get('/adherents-payes', authenticate, authorize('admin', 'president'), as
   }
 });
 
-router.post('/adherents-rapides', authenticate, authorize('admin', 'president'), async (req, res) => {
+router.post('/adherents-rapides', authenticate, authorize('admin', 'president', 'perm:finances_edit'), async (req, res) => {
   try {
     await ensureFinanceSchema();
     const nom = String(req.body.nom || '').trim();
@@ -539,7 +539,7 @@ router.post('/adherents-rapides', authenticate, authorize('admin', 'president'),
   }
 });
 
-router.get('/mouvements', authenticate, authorize('admin', 'president'), async (req, res) => {
+router.get('/mouvements', authenticate, authorize('admin', 'president', 'perm:finances_view', 'perm:finances_edit'), async (req, res) => {
   try {
     await ensureFinanceSchema();
     const { sens, compte, nature, q } = req.query;
@@ -562,7 +562,7 @@ router.get('/mouvements', authenticate, authorize('admin', 'president'), async (
   }
 });
 
-router.post('/mouvements', authenticate, authorize('admin', 'president'), async (req, res) => {
+router.post('/mouvements', authenticate, authorize('admin', 'president', 'perm:finances_edit'), async (req, res) => {
   try {
     await ensureFinanceSchema();
     const { errors, data } = parseMouvementBody(req.body);
@@ -630,7 +630,7 @@ async function handleUpdateMouvement(req, res, idRaw, bodyObj) {
   }
 }
 
-router.patch('/mouvements/:id', authenticate, authorize('admin', 'president'), (req, res) =>
+router.patch('/mouvements/:id', authenticate, authorize('admin', 'president', 'perm:finances_edit'), (req, res) =>
   handleUpdateMouvement(req, res, req.params.id, req.body)
 );
 
@@ -638,7 +638,7 @@ router.patch('/mouvements/:id', authenticate, authorize('admin', 'president'), (
 // et renvoient la page d'accueil (200 + HTML) au lieu d'appeler l'API.
 // Ces routes font EXACTEMENT la même chose, mais en POST (jamais bloqué)
 // et sans id dans l'URL (id dans le corps JSON).
-router.post('/mouvements/update', authenticate, authorize('admin', 'president'), (req, res) =>
+router.post('/mouvements/update', authenticate, authorize('admin', 'president', 'perm:finances_edit'), (req, res) =>
   handleUpdateMouvement(req, res, req.body?.id, req.body || {})
 );
 
@@ -661,12 +661,12 @@ async function handleDeleteMouvement(req, res, idRaw) {
   }
 }
 
-router.delete('/mouvements/:id', authenticate, authorize('admin', 'president'), (req, res) =>
+router.delete('/mouvements/:id', authenticate, authorize('admin', 'president', 'perm:finances_edit'), (req, res) =>
   handleDeleteMouvement(req, res, req.params.id)
 );
 
 // ✅ SECOURS POST (22/09/2026) : suppression via POST + { id } dans le corps.
-router.post('/mouvements/delete', authenticate, authorize('admin', 'president'), (req, res) =>
+router.post('/mouvements/delete', authenticate, authorize('admin', 'president', 'perm:finances_edit'), (req, res) =>
   handleDeleteMouvement(req, res, req.body?.id)
 );
 

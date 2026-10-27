@@ -1,3 +1,4 @@
+
 import mysql from 'mysql2/promise';
 import { CONFIG } from './config.js';
 
@@ -146,6 +147,8 @@ export async function initSchema() {
     CREATE TABLE IF NOT EXISTS users (
       id INT AUTO_INCREMENT PRIMARY KEY,
       email VARCHAR(150) UNIQUE NOT NULL,
+      nom VARCHAR(150) DEFAULT NULL,
+      telephone VARCHAR(30) DEFAULT NULL,
       password_hash VARCHAR(255) NOT NULL,
       role VARCHAR(20) NOT NULL,
       permissions TEXT,
@@ -304,7 +307,9 @@ async function ensureMigrations() {
 
   try {
     if (!(await hasColumn('users', 'permissions'))) await query('ALTER TABLE users ADD COLUMN permissions TEXT AFTER role');
-  } catch (e) { console.warn('Migration permissions users :', e.message); }
+    if (!(await hasColumn('users', 'nom'))) await query('ALTER TABLE users ADD COLUMN nom VARCHAR(150) DEFAULT NULL AFTER email');
+    if (!(await hasColumn('users', 'telephone'))) await query('ALTER TABLE users ADD COLUMN telephone VARCHAR(30) DEFAULT NULL AFTER nom');
+  } catch (e) { console.warn('Migration permissions/nom users :', e.message); }
 
   for (const [name, col] of [['uq_adh_nin', 'nin'], ['uq_adh_tel', 'telephone']]) {
     try { await query(`ALTER TABLE adherents ADD UNIQUE KEY ${name} (${col})`); } catch {}

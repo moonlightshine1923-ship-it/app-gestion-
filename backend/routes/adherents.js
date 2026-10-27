@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { get, query, run } from '../db.js';
-import { authenticate, authorize } from '../middleware/auth.js';
+import { authenticate, authorize, hasPermission } from '../middleware/auth.js';
 import { uploadPhoto } from '../middleware/upload.js';
 import { generateMatricule, buildMatricule, nextNumOrdre } from '../matricule.js';
 import { wilayaNom, wilayaNomAr, docTypeLibelle, carteInfo, TYPES, NIVEAUX, DOC_TYPES } from '../data/wilayas.js';
@@ -213,13 +213,13 @@ async function assureMatricules() {
   } catch (err) { console.error(err); }
 }
 
-router.get('/preview/matricule', authenticate, authorize('admin', 'president', 'perm:adherents_add'), async (req, res) => {
+router.get('/preview/matricule', authenticate, authorize('admin', 'president', 'perm:adherents_add', 'perm:adherents_manage', 'perm:bureau_edit'), async (req, res) => {
   try {
     const { wilaya_code, type_code, annee, bureau_code } = req.query;
     if (isEtranger(wilaya_code)) {
       return res.json({ matricule: '', num_ordre: 0, manuel: true });
     }
-    if (req.user.role === 'saisie' && String(type_code || '').toUpperCase() === 'BE') {
+    if (req.user.role === 'saisie' && String(type_code || '').toUpperCase() === 'BE' && !hasPermission(req.user, 'bureau_edit')) {
       return res.status(403).json({ error: "Ce compte n'est pas autorisé à créer un membre du Bureau exécutif." });
     }
     const generated = await generateMatricule({
@@ -234,19 +234,16 @@ router.get('/preview/matricule', authenticate, authorize('admin', 'president', '
   }
 });
 
-router.get('/', authenticate, authorize('admin', 'president', 'perm:adherents_manage'), async (req, res) => {
+router.get('/', authenticate, authorize('admin', 'president', 'perm:adherents_view', 'perm:adherents_manage', 'perm:bureau_view', 'perm:bureau_edit', 'perm:services_view', 'perm:services_edit'), async (req, res) => {
   try {
     await assureMatricules();
-    const { q, wilaya, type, validite, paiement, annee } = req.query;
+    const { q, wilaya, type, validite, paiement } = req.query;
     let sql = 'SELECT * FROM adherents WHERE 1=1';
     const params = [];
     if (q) {
-      // ✅ Recherche "nom + prénom" dans les deux ordres (espaces normalisés),
-      //    nom seul, prénom seul, + les autres champs
-      const qs = String(q).trim().replace(/\s+/g, ' ');
-      sql += " AND (nom LIKE ? OR prenom LIKE ? OR CONCAT(nom, ' ', prenom) LIKE ? OR CONCAT(prenom, ' ', nom) LIKE ? OR matricule LIKE ? OR telephone LIKE ? OR bureau_badge_type LIKE ? OR email LIKE ? OR profession LIKE ? OR fonction LIKE ? OR nin LIKE ? OR doc_numero LIKE ?)";
-      const like = `%${qs}%`;
-      params.push(like, like, like, like, like, like, like, like, like, like, like, like);
+      sql += ' AND (nom LIKE ? OR prenom LIKE ? OR matricule LIKE ? OR telephone LIKE ? OR bureau_badge_type LIKE ? OR email LIKE ? OR profession LIKE ? OR fonction LIKE ?)';
+      const like = `%${q}%`;
+      params.push(like, like, like, like, like, like, like, like);
     }
     if (wilaya) { sql += ' AND wilaya_code = ?'; params.push(wilaya); }
     if (type) {
@@ -258,9 +255,7 @@ router.get('/', authenticate, authorize('admin', 'president', 'perm:adherents_ma
         sql += ' AND type_code = ?';
         params.push(type);
       }
-    } else if (!q) {
-      // ✅ Sans recherche : la liste Adhérents exclut le Bureau exécutif.
-      //    AVEC recherche (q) : les membres BE sont inclus dans les résultats.
+    } else {
       sql += " AND (type_code IS NULL OR type_code <> 'BE')";
     }
 
@@ -281,12 +276,6 @@ router.get('/', authenticate, authorize('admin', 'president', 'perm:adherents_ma
       params.push(paiement);
     }
 
-    // ✅ Filtre par année d'adhésion (déduite de date_adhesion, sinon colonne annee)
-    if (annee && /^\d{4}$/.test(String(annee))) {
-      sql += ' AND (YEAR(date_adhesion) = ? OR (date_adhesion IS NULL AND annee = ?))';
-      params.push(Number(annee), Number(annee));
-    }
-
     sql += ' ORDER BY created_at DESC';
     let rows;
     try {
@@ -297,10 +286,9 @@ router.get('/', authenticate, authorize('admin', 'president', 'perm:adherents_ma
         let sql2 = 'SELECT * FROM adherents WHERE 1=1';
         const params2 = [];
         if (q) {
-          const qs2 = String(q).trim().replace(/\s+/g, ' ');
-          sql2 += " AND (nom LIKE ? OR prenom LIKE ? OR CONCAT(nom, ' ', prenom) LIKE ? OR CONCAT(prenom, ' ', nom) LIKE ? OR matricule LIKE ? OR telephone LIKE ? OR bureau_badge_type LIKE ? OR email LIKE ? OR nin LIKE ? OR doc_numero LIKE ?)";
-          const like2 = `%${qs2}%`;
-          params2.push(like2, like2, like2, like2, like2, like2, like2, like2, like2, like2);
+          sql2 += ' AND (nom LIKE ? OR prenom LIKE ? OR matricule LIKE ? OR telephone LIKE ? OR bureau_badge_type LIKE ? OR email LIKE ?)';
+          const like2 = `%${q}%`;
+          params2.push(like2, like2, like2, like2, like2, like2);
         }
         if (wilaya) { sql2 += ' AND wilaya_code = ?'; params2.push(wilaya); }
         if (type) {
@@ -312,7 +300,7 @@ router.get('/', authenticate, authorize('admin', 'president', 'perm:adherents_ma
             sql2 += ' AND type_code = ?';
             params2.push(type);
           }
-        } else if (!q) {
+        } else {
           sql2 += " AND (type_code IS NULL OR type_code <> 'BE')";
         }
         if (validite === 'valide') {
@@ -330,10 +318,6 @@ router.get('/', authenticate, authorize('admin', 'president', 'perm:adherents_ma
           sql2 += " AND paiement_mode = ?";
           params2.push(paiement);
         }
-        if (annee && /^\d{4}$/.test(String(annee))) {
-          sql2 += ' AND (YEAR(date_adhesion) = ? OR (date_adhesion IS NULL AND annee = ?))';
-          params2.push(Number(annee), Number(annee));
-        }
         sql2 += ' ORDER BY created_at DESC';
         rows = await query(sql2, params2);
       } else { throw e; }
@@ -342,30 +326,7 @@ router.get('/', authenticate, authorize('admin', 'president', 'perm:adherents_ma
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// ✅ Liste DYNAMIQUE des années d'adhésion présentes en base (pour le filtre).
-// Déduite de date_adhesion (sinon de la colonne annee), triée de la plus récente à la plus ancienne.
-// Doit être déclarée AVANT la route '/:id' sinon Express interpréterait "annees" comme un id.
-router.get('/annees', authenticate, authorize('admin', 'president', 'perm:adherents_manage'), async (req, res) => {
-  try {
-    const { type } = req.query;
-    let sql = `
-      SELECT DISTINCT COALESCE(YEAR(date_adhesion), NULLIF(annee, 0)) AS annee
-      FROM adherents
-      WHERE COALESCE(YEAR(date_adhesion), NULLIF(annee, 0)) IS NOT NULL
-    `;
-    const params = [];
-    if (type === 'BE') {
-      sql += " AND type_code = 'BE'";
-    } else {
-      sql += " AND (type_code IS NULL OR type_code <> 'BE')";
-    }
-    sql += ' ORDER BY annee DESC';
-    const rows = await query(sql, params);
-    res.json(rows.map((r) => Number(r.annee)));
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-router.get('/:id', authenticate, authorize('admin', 'president', 'perm:adherents_manage'), async (req, res) => {
+router.get('/:id', authenticate, authorize('admin', 'president', 'perm:adherents_view', 'perm:adherents_manage', 'perm:bureau_view', 'perm:bureau_edit'), async (req, res) => {
   try {
     const a = await get('SELECT * FROM adherents WHERE id = ?', [req.params.id]);
     if (!a) return res.status(404).json({ error: 'Adhérent introuvable.' });
@@ -373,10 +334,10 @@ router.get('/:id', authenticate, authorize('admin', 'president', 'perm:adherents
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.post('/', authenticate, authorize('admin', 'president', 'perm:adherents_add', 'perm:adherents_manage'), uploadPhoto.single('photo'), async (req, res) => {
+router.post('/', authenticate, authorize('admin', 'president', 'perm:adherents_add', 'perm:adherents_manage', 'perm:bureau_edit'), uploadPhoto.single('photo'), async (req, res) => {
   try {
     const b = req.body;
-    if (req.user.role === 'saisie' && String(b.type_code || '').toUpperCase() === 'BE') {
+    if (req.user.role === 'saisie' && String(b.type_code || '').toUpperCase() === 'BE' && !hasPermission(req.user, 'bureau_edit')) {
       return res.status(403).json({ error: "Ce compte n'est pas autorisé à créer un membre du Bureau exécutif." });
     }
     const errors = validate(b);
@@ -472,7 +433,7 @@ router.post('/', authenticate, authorize('admin', 'president', 'perm:adherents_a
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.put('/:id', authenticate, authorize('admin', 'president', 'perm:adherents_manage'), uploadPhoto.single('photo'), async (req, res) => {
+router.put('/:id', authenticate, authorize('admin', 'president', 'perm:adherents_manage', 'perm:bureau_edit'), uploadPhoto.single('photo'), async (req, res) => {
   try {
     const a = await get('SELECT * FROM adherents WHERE id = ?', [req.params.id]);
     if (!a) return res.status(404).json({ error: 'Adhérent introuvable.' });
@@ -550,7 +511,7 @@ router.put('/:id', authenticate, authorize('admin', 'president', 'perm:adherents
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.delete('/:id', authenticate, authorize('admin', 'president'), async (req, res) => {
+router.delete('/:id', authenticate, authorize('admin', 'president', 'perm:adherents_manage', 'perm:bureau_edit'), async (req, res) => {
   try {
     const a = await get('SELECT nom, prenom, matricule FROM adherents WHERE id = ?', [req.params.id]);
     const nameStr = a ? `${a.prenom} ${a.nom} (Matricule: ${a.matricule || 'N/A'})` : `ID ${req.params.id}`;
@@ -560,7 +521,7 @@ router.delete('/:id', authenticate, authorize('admin', 'president'), async (req,
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.patch('/:id/ranking', authenticate, authorize('admin', 'president'), async (req, res) => {
+router.patch('/:id/ranking', authenticate, authorize('admin', 'president', 'perm:dashboard_edit', 'perm:adherents_manage'), async (req, res) => {
   try {
     const a = await get('SELECT * FROM adherents WHERE id = ?', [req.params.id]);
     if (!a) return res.status(404).json({ error: 'Adhérent introuvable.' });
@@ -576,7 +537,7 @@ router.patch('/:id/ranking', authenticate, authorize('admin', 'president'), asyn
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.get('/:id/carte', authenticate, authorize('admin', 'president', 'perm:adherents_manage'), async (req, res) => {
+router.get('/:id/carte', authenticate, authorize('admin', 'president', 'perm:adherents_view', 'perm:adherents_add', 'perm:adherents_manage', 'perm:bureau_view', 'perm:bureau_edit'), async (req, res) => {
   try {
     let a = await get('SELECT * FROM adherents WHERE id = ?', [req.params.id]);
     if (!a) return res.status(404).json({ error: 'Adhérent introuvable.' });
@@ -606,11 +567,12 @@ router.get('/:id/carte', authenticate, authorize('admin', 'president', 'perm:adh
     }
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
     res.send(renderCarteHTML(a, ad, info, photoDataUri));
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.get('/:id/dossier', authenticate, authorize('admin', 'president', 'perm:adherents_add', 'perm:adherents_manage'), async (req, res) => {
+router.get('/:id/dossier', authenticate, authorize('admin', 'president', 'perm:adherents_view', 'perm:adherents_add', 'perm:adherents_manage', 'perm:bureau_view', 'perm:bureau_edit'), async (req, res) => {
   try {
     let a = await get('SELECT * FROM adherents WHERE id = ?', [req.params.id]);
     if (!a) return res.status(404).json({ error: 'Adhérent introuvable.' });
@@ -629,6 +591,7 @@ router.get('/:id/dossier', authenticate, authorize('admin', 'president', 'perm:a
     await logAction(req, 'PRINT_DOSSIER', `Génération/Impression du dossier d'adhérent pour ${a.prenom} ${a.nom} (Matricule: ${a.matricule})`, a.id, 'adherent');
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
     res.send(renderDossierHTML(a, ad, info));
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -710,7 +673,7 @@ function renderCarteHTML(a, ad, info, photoDataUri) {
 
   .photo-wrap {
     position:absolute;
-    left:1.23%; top:32.50%;
+    left:1.23%; top:33.50%;
     width:25.86%; height:48.20%;
     z-index:3;
   }

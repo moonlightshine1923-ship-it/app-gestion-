@@ -20,7 +20,7 @@ function today() {
 }
 
 // 1. Liste de tous les services avec filtres
-router.get('/', authenticate, async (req, res) => {
+router.get('/', authenticate, authorize('admin', 'president', 'perm:services_view', 'perm:services_edit'), async (req, res) => {
   try {
     const { q, adherent_id, type_service } = req.query;
     let sql = `
@@ -62,7 +62,7 @@ router.get('/', authenticate, async (req, res) => {
 });
 
 // 2. Statistiques globales des services
-router.get('/stats', authenticate, async (req, res) => {
+router.get('/stats', authenticate, authorize('admin', 'president', 'perm:services_view', 'perm:services_edit'), async (req, res) => {
   try {
     const counts = await get(`
       SELECT
@@ -88,7 +88,7 @@ router.get('/stats', authenticate, async (req, res) => {
 });
 
 // 3. Services rendus à un adhérent spécifique
-router.get('/adherent/:adherentId', authenticate, async (req, res) => {
+router.get('/adherent/:adherentId', authenticate, authorize('admin', 'president', 'perm:services_view', 'perm:services_edit'), async (req, res) => {
   try {
     const adherentId = parseInt(req.params.adherentId, 10);
     const adh = await get('SELECT id, nom, prenom, matricule FROM adherents WHERE id = ?', [adherentId]);
@@ -109,7 +109,7 @@ router.get('/adherent/:adherentId', authenticate, async (req, res) => {
 });
 
 // 4. Détail d'un service
-router.get('/:id', authenticate, async (req, res) => {
+router.get('/:id', authenticate, authorize('admin', 'president', 'perm:services_view', 'perm:services_edit'), async (req, res) => {
   try {
     const service = await get(`
       SELECT s.*,
@@ -129,7 +129,7 @@ router.get('/:id', authenticate, async (req, res) => {
 });
 
 // 5. Créer un nouveau service
-router.post('/', authenticate, async (req, res) => {
+router.post('/', authenticate, authorize('admin', 'president', 'perm:services_edit'), async (req, res) => {
   try {
     const { adherent_id, titre, type_service, description, date_service } = req.body;
     
@@ -164,7 +164,7 @@ router.post('/', authenticate, async (req, res) => {
 });
 
 // 6. Modifier un service
-router.patch('/:id', authenticate, async (req, res) => {
+router.patch('/:id', authenticate, authorize('admin', 'president', 'perm:services_edit'), async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     const existing = await get('SELECT * FROM services_adherents WHERE id = ?', [id]);
@@ -212,7 +212,7 @@ router.patch('/:id', authenticate, async (req, res) => {
 });
 
 // 7. Supprimer un service
-router.delete('/:id', authenticate, async (req, res) => {
+router.delete('/:id', authenticate, authorize('admin', 'president', 'perm:services_edit'), async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     const existing = await get('SELECT s.*, a.nom, a.prenom FROM services_adherents s JOIN adherents a ON a.id = s.adherent_id WHERE s.id = ?', [id]);

@@ -1,7 +1,7 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import { get, run } from '../db.js';
-import { signToken, authenticate, resolveUserPermissions } from '../middleware/auth.js';
+import { signToken, authenticate, resolveUserPermissions, hasPermission } from '../middleware/auth.js';
 import { logAction } from '../audit.js';
 import { notifyUserLogin, notifyPasswordChanged } from '../email.js';
 
@@ -40,15 +40,18 @@ function clearLoginFailures(key) {
 
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body || {};
-    if (!email || !password) return res.status(400).json({ error: 'Email et mot de passe requis.' });
+    const rawLogin = String(req.body?.email || req.body?.username || '').trim();
+    const password = req.body?.password;
+    if (!rawLogin || !password) return res.status(400).json({ error: 'Identifiant et mot de passe requis.' });
 
-    const gate = canAttemptLogin(req, email);
+    const gate = canAttemptLogin(req, rawLogin);
     if (!gate.ok) {
       return res.status(429).json({ error: `Trop de tentatives. Réessayez dans ${gate.waitSec} secondes.` });
     }
 
-    const user = await get('SELECT * FROM users WHERE email = ?', [String(email).toLowerCase().trim()]);
+    const identifier = rawLogin.toLowerCase();
+    const user = await get('SELECT * FROM users WHERE LOWER(email) = ? LIMIT 1', [identifier]);
+
     if (!user || !bcrypt.compareSync(password, user.password_hash)) {
       recordLoginFailure(gate.key);
       return res.status(401).json({ error: 'Identifiants incorrects.' });
@@ -57,14 +60,21 @@ router.post('/login', async (req, res) => {
     clearLoginFailures(gate.key);
     const permissions = resolveUserPermissions(user);
     const token = signToken({ ...user, permissions });
-    req.user = { id: user.id, email: user.email, role: user.role };
+    req.user = { id: user.id, email: user.email, role: user.role, permissions };
     await logAction(req, 'LOGIN', `Connexion de l'utilisateur ${user.email}`);
     
-    // Notification par email
     const clientIp = req.ip || req.headers['x-forwarded-for'] || req.connection?.remoteAddress || '';
     await notifyUserLogin({ userEmail: user.email, userRole: user.role, ip: clientIp });
 
-    res.json({ token, user: { id: user.id, email: user.email, role: user.role, permissions } });
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        permissions,
+      },
+    });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -78,7 +88,7 @@ router.get('/me', authenticate, async (req, res) => {
 
 router.post('/change-password', authenticate, async (req, res) => {
   try {
-    if (req.user.role === 'saisie') {
+    if (req.user.role === 'saisie' && !hasPermission(req.user, 'parametres_edit')) {
       return res.status(403).json({ error: "Ce compte n'est pas autorisé à changer son mot de passe." });
     }
 
@@ -94,7 +104,6 @@ router.post('/change-password', authenticate, async (req, res) => {
     await run('UPDATE users SET password_hash = ? WHERE id = ?', [hash, user.id]);
     await logAction(req, 'CHANGE_PASSWORD', `Changement de mot de passe par l'utilisateur ${req.user.email}`);
     
-    // Notification par email
     const clientIp = req.ip || req.headers['x-forwarded-for'] || req.connection?.remoteAddress || '';
     await notifyPasswordChanged({ userEmail: req.user.email, changedByEmail: req.user.email, ip: clientIp, isResetByAdmin: false });
 
@@ -103,4 +112,3 @@ router.post('/change-password', authenticate, async (req, res) => {
 });
 
 export default router;
-

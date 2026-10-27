@@ -9,7 +9,7 @@ import { logAction } from '../audit.js';
 
 const router = express.Router();
 
-router.get('/adherents-statut', authenticate, authorize('admin', 'president', 'perm:documents_view'), async (req, res) => {
+router.get('/adherents-statut', authenticate, authorize('admin', 'president', 'perm:documents_view', 'perm:documents_edit'), async (req, res) => {
   try {
     const sql = `
       SELECT 
@@ -34,7 +34,7 @@ router.get('/adherents-statut', authenticate, authorize('admin', 'president', 'p
   }
 });
 // 2. Fusion PDF
-router.post('/fusionner/:adherentId', authenticate, authorize('admin', 'president'), uploadDoc.array('fichiers'), async (req, res) => {
+router.post('/fusionner/:adherentId', authenticate, authorize('admin', 'president', 'perm:documents_edit'), uploadDoc.array('fichiers'), async (req, res) => {
   try {
     const { adherentId } = req.params;
     if (!req.files || req.files.length === 0) return res.status(400).json({ error: 'Aucun fichier.' });
@@ -74,7 +74,7 @@ router.post('/fusionner/:adherentId', authenticate, authorize('admin', 'presiden
 });
 
 // 3. Suppression groupée par adherent_id
-router.post('/suppression-groupes', authenticate, authorize('admin', 'president'), async (req, res) => {
+router.post('/suppression-groupes', authenticate, authorize('admin', 'president', 'perm:documents_edit'), async (req, res) => {
   try {
     const { ids } = req.body; 
     if (!ids || !Array.isArray(ids) || ids.length === 0) return res.status(400).json({ error: 'Aucun adhérent sélectionné.' });
@@ -102,7 +102,7 @@ router.post('/suppression-groupes', authenticate, authorize('admin', 'president'
 // 4. Suppression d'un seul document par son id (complète API.deleteDocument).
 // ✅ Ajouté le 22/09/2026 : la route n'existait pas → l'appel tombait sur
 // la page d'accueil (200 + HTML) au lieu d'une réponse JSON.
-router.delete('/:id', authenticate, authorize('admin', 'president'), async (req, res) => {
+router.delete('/:id', authenticate, authorize('admin', 'president', 'perm:documents_edit'), async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide.' });

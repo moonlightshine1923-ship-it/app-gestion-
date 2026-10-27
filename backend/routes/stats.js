@@ -5,7 +5,7 @@ import { wilayaNom } from '../data/wilayas.js';
 
 const router = express.Router();
 
-router.get('/', authenticate, authorize('admin', 'president'), async (req, res) => {
+router.get('/', authenticate, authorize('admin', 'president', 'perm:dashboard_view', 'perm:dashboard_edit'), async (req, res) => {
   try {
     const totalAdherents = (await get("SELECT COUNT(*) AS c FROM adherents WHERE type_code <> 'BE' OR type_code IS NULL")).c;
     const totalBureauExecutif = (await get("SELECT COUNT(*) AS c FROM adherents WHERE type_code = 'BE'"))?.c || 0;

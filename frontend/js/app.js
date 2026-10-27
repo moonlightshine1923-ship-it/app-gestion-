@@ -18,23 +18,52 @@
     { id: 'parametres', label: 'Paramètres', icon: '⚙️', title: 'Paramètres', render: () => Views.parametres() },
   ];
 
+  const AUDIT_ITEM = { id: 'audit', label: "Journal d'audit", icon: '📋', title: "Journal d'audit des actions", render: () => Views.auditList() };
+
   function buildLimitedMenu(perms = []) {
+    const has = (...codes) => codes.some((c) => perms.includes(c));
     const menu = [];
-    if (perms.includes('adherents_manage')) {
-      menu.push({ id: 'adherents', label: 'Adhérents', icon: '👥', title: 'Gestion des adhérents', render: () => Views.adherentsList() });
-    } else if (perms.includes('adherents_add')) {
+
+    if (has('dashboard_view', 'dashboard_edit')) {
+      menu.push(MENU_FULL.find((m) => m.id === 'dashboard'));
+    }
+    if (has('adherents_view', 'adherents_manage')) {
+      menu.push(MENU_FULL.find((m) => m.id === 'adherents'));
+    } else if (has('adherents_add')) {
       menu.push({ id: 'ajout', label: 'Ajouter un adhérent', icon: '➕', title: 'Ajouter un adhérent', render: () => Views.saisieAjout() });
     }
-    if (perms.includes('demandes_view') || perms.includes('demandes_edit')) {
-      menu.push({ id: 'demandes', label: 'Demandes', icon: '📨', title: 'Demandes (site web)', render: () => Views.demandesList() });
+    if (has('services_view', 'services_edit')) {
+      menu.push(MENU_FULL.find((m) => m.id === 'services'));
     }
-    if (perms.includes('documents_view')) {
-      menu.push({ id: 'documents', label: 'Documents', icon: '📁', title: 'Gestion documentaire', render: () => Views.documentsList() });
+    if (has('bureau_view', 'bureau_edit')) {
+      menu.push(MENU_FULL.find((m) => m.id === 'bureau-executif'));
     }
+    if (has('blacklist_view', 'blacklist_edit')) {
+      menu.push(MENU_FULL.find((m) => m.id === 'blacklist'));
+    }
+    if (has('demandes_view', 'demandes_edit')) {
+      menu.push(MENU_FULL.find((m) => m.id === 'demandes'));
+    }
+    if (has('documents_view', 'documents_edit')) {
+      menu.push(MENU_FULL.find((m) => m.id === 'documents'));
+    }
+    if (has('finances_view', 'finances_edit')) {
+      menu.push(MENU_FULL.find((m) => m.id === 'finances'));
+    }
+    if (has('comptes_view', 'comptes_edit')) {
+      menu.push(MENU_FULL.find((m) => m.id === 'comptes'));
+    }
+    if (has('parametres_view', 'parametres_edit')) {
+      menu.push(MENU_FULL.find((m) => m.id === 'parametres'));
+    }
+    if (has('audit_view', 'audit_edit')) {
+      menu.push(AUDIT_ITEM);
+    }
+
     if (!menu.length) {
       menu.push({ id: 'ajout', label: 'Accueil', icon: '🔒', title: 'Accès', render: () => Views.parametres() });
     }
-    return menu;
+    return menu.filter(Boolean);
   }
 
   async function maybeAutoMonthlyBackup(user) {
@@ -84,20 +113,20 @@
     Views.setPermissions(permissions);
 
     if (role === 'president') {
-      MENU = [
-        ...MENU_FULL,
-        { id: 'audit', label: "Journal d'audit", icon: '📋', title: "Journal d'audit des actions", render: () => Views.auditList() }
-      ];
+      MENU = [...MENU_FULL, AUDIT_ITEM];
     } else if (role === 'admin') {
       MENU = MENU_FULL;
     } else {
       MENU = buildLimitedMenu(permissions);
     }
 
-    const name = role === 'admin' ? 'Administrateur OPA' : (role === 'president' ? 'Président OPA' : 'Utilisateur autorisé');
-    $('#userName').textContent = name;
+    const displayName = (session.user.nom && String(session.user.nom).trim())
+      ? String(session.user.nom).trim()
+      : (role === 'admin' ? 'Administrateur OPA' : (role === 'president' ? 'Président OPA' : (session.user.email || 'Utilisateur autorisé')));
+
+    $('#userName').textContent = displayName;
     $('#userRole').textContent = ROLE_LABEL[role] || role;
-    $('#userAvatar').textContent = (name[0] || 'U').toUpperCase();
+    $('#userAvatar').textContent = (displayName[0] || 'U').toUpperCase();
     $('#topRole').textContent = ROLE_LABEL[role] || role;
 
     buildNav();

@@ -13,16 +13,50 @@ const Views = (() => {
   function setRole(r) { ROLE = r; }
   function setPermissions(p = []) { PERMS = Array.isArray(p) ? p : []; }
   function container() { return $('#viewContainer'); }
+  const IMPLIED_PERMS = {
+    dashboard_view: ['dashboard_edit'],
+    adherents_view: ['adherents_manage'],
+    adherents_add: ['adherents_manage'],
+    services_view: ['services_edit'],
+    bureau_view: ['bureau_edit'],
+    blacklist_view: ['blacklist_edit'],
+    demandes_view: ['demandes_edit'],
+    documents_view: ['documents_edit'],
+    finances_view: ['finances_edit'],
+    comptes_view: ['comptes_edit'],
+    parametres_view: ['parametres_edit'],
+    audit_view: ['audit_edit'],
+  };
+
   function hasPerm(code) {
-    return ROLE === 'admin' || ROLE === 'president' || PERMS.includes(code) || (code === 'demandes_view' && PERMS.includes('demandes_edit'));
+    if (ROLE === 'admin' || ROLE === 'president') return true;
+    if (PERMS.includes(code)) return true;
+    const imps = IMPLIED_PERMS[code] || [];
+    return imps.some((imp) => PERMS.includes(imp));
   }
   function isSaisieOnly() { return ROLE === 'saisie'; }
-  function canAccessBE() { return ROLE === 'admin' || ROLE === 'president'; }
-  function canViewDemandes() { return hasPerm('demandes_view') || hasPerm('demandes_edit'); }
+  function canViewDashboard() { return hasPerm('dashboard_view'); }
+  function canEditDashboard() { return hasPerm('dashboard_edit'); }
+  function canViewAdherents() { return hasPerm('adherents_view'); }
+  function canAddAdherents() { return hasPerm('adherents_add'); }
+  function canManageAdherents() { return hasPerm('adherents_manage'); }
+  function canViewServices() { return hasPerm('services_view'); }
+  function canEditServices() { return hasPerm('services_edit'); }
+  function canAccessBE() { return hasPerm('bureau_view'); }
+  function canEditBE() { return hasPerm('bureau_edit'); }
+  function canViewBlacklist() { return hasPerm('blacklist_view'); }
+  function canEditBlacklist() { return hasPerm('blacklist_edit'); }
+  function canViewDemandes() { return hasPerm('demandes_view'); }
   function canEditDemandes() { return hasPerm('demandes_edit'); }
-  function canAddAdherents() { return ROLE === 'admin' || ROLE === 'president' || hasPerm('adherents_add') || hasPerm('adherents_manage'); }
-  function canManageAdherents() { return ROLE === 'admin' || ROLE === 'president' || hasPerm('adherents_manage'); }
-  function canViewDocuments() { return ROLE === 'admin' || ROLE === 'president' || hasPerm('documents_view'); }
+  function canViewDocuments() { return hasPerm('documents_view'); }
+  function canEditDocuments() { return hasPerm('documents_edit'); }
+  function canViewFinances() { return hasPerm('finances_view'); }
+  function canEditFinances() { return hasPerm('finances_edit'); }
+  function canViewComptes() { return hasPerm('comptes_view'); }
+  function canEditComptes() { return hasPerm('comptes_edit'); }
+  function canViewParametres() { return hasPerm('parametres_view'); }
+  function canEditParametres() { return hasPerm('parametres_edit'); }
+  function canViewAudit() { return ROLE === 'president' || PERMS.includes('audit_view') || PERMS.includes('audit_edit'); }
 
   function wilayaOptions(sel) {
     return REF.wilayas.map((w) => `<option value="${w.code}" ${w.code === sel ? 'selected' : ''}>${w.code} — ${esc(w.nom)}</option>`).join('');
@@ -389,30 +423,30 @@ const Views = (() => {
           <div class="dash-panel-head"><h3>⚡ Actions rapides</h3></div>
           <div class="dash-panel-body">
             <div class="quick-actions">
-              <button class="qa-btn" id="qaAddAdh">
+              ${canAddAdherents() ? `<button class="qa-btn" id="qaAddAdh">
                 <div class="qa-ico" style="background:rgba(99,102,241,.1);color:#6366f1">➕</div>
                 <div><div>Nouvel adhérent</div><div style="font-size:11px;color:var(--muted, #94a3b8);font-weight:400">Enregistrer un adhérent</div></div>
-              </button>
-              <button class="qa-btn" id="qaDemandes">
+              </button>` : ''}
+              ${canViewDemandes() ? `<button class="qa-btn" id="qaDemandes">
                 <div class="qa-ico" style="background:rgba(245,158,11,.1);color:#f59e0b">📨</div>
                 <div><div>Traiter les demandes</div><div style="font-size:11px;color:var(--muted, #94a3b8);font-weight:400">${s.demandes.ouvertes} en attente</div></div>
-              </button>
-              <button class="qa-btn" id="qaDocuments">
+              </button>` : ''}
+              ${canViewDocuments() ? `<button class="qa-btn" id="qaDocuments">
                 <div class="qa-ico" style="background:rgba(16,185,129,.1);color:#10b981">📁</div>
                 <div><div>Documents</div><div style="font-size:11px;color:var(--muted, #94a3b8);font-weight:400">Gestion documentaire</div></div>
-              </button>
-              <button class="qa-btn" id="qaBureau">
+              </button>` : ''}
+              ${canAccessBE() ? `<button class="qa-btn" id="qaBureau">
                 <div class="qa-ico" style="background:rgba(139,92,246,.1);color:#8b5cf6">🏛️</div>
                 <div><div>Bureau exécutif</div><div style="font-size:11px;color:var(--muted, #94a3b8);font-weight:400">${s.totalBureauExecutif || 0} membre(s)</div></div>
-              </button>
-              <button class="qa-btn" id="qaComptes">
+              </button>` : ''}
+              ${canViewComptes() ? `<button class="qa-btn" id="qaComptes">
                 <div class="qa-ico" style="background:rgba(124,58,237,.1);color:#7c3aed">👥</div>
                 <div><div>Comptes</div><div style="font-size:11px;color:var(--muted, #94a3b8);font-weight:400">Gestion des utilisateurs</div></div>
-              </button>
-              <button class="qa-btn" id="qaFinances">
+              </button>` : ''}
+              ${canViewFinances() ? `<button class="qa-btn" id="qaFinances">
                 <div class="qa-ico" style="background:rgba(196,155,46,.12);color:#c49b2e">💰</div>
                 <div><div>Finances</div><div style="font-size:11px;color:var(--muted, #94a3b8);font-weight:400">Chèques, banques, caisse</div></div>
-              </button>
+              </button>` : ''}
             </div>
           </div>
         </div>
@@ -522,11 +556,11 @@ const Views = (() => {
     `;
 
     // Bind quick actions
-    $('#qaAddAdh').onclick = () => adherentForm(null, adherentsList);
-    $('#qaDemandes').onclick = () => demandesList();
-    $('#qaDocuments').onclick = () => documentsList();
-    $('#qaBureau').onclick = () => bureauExecutifList();
-    $('#qaComptes').onclick = () => comptesList();
+    if ($('#qaAddAdh')) $('#qaAddAdh').onclick = () => adherentForm(null, adherentsList);
+    if ($('#qaDemandes')) $('#qaDemandes').onclick = () => demandesList();
+    if ($('#qaDocuments')) $('#qaDocuments').onclick = () => documentsList();
+    if ($('#qaBureau')) $('#qaBureau').onclick = () => bureauExecutifList();
+    if ($('#qaComptes')) $('#qaComptes').onclick = () => comptesList();
     if ($('#qaFinances')) $('#qaFinances').onclick = () => finances();
     c.querySelectorAll('[data-star-view]').forEach((el) => el.onclick = () => adherentDetail(el.dataset.starView, adherentsList));
     bindAdhesionNotifications(s.adhesionsBientotExpirantes || [], dashboard);
@@ -612,7 +646,7 @@ return `<div class="stat-card" style="--kpi-color:${color}">
 
   async function bureauExecutifList() {
     const c = container();
-    if (isSaisieOnly()) {
+    if (!canAccessBE()) {
       c.innerHTML = UI.emptyState('🔒', "Vous n'avez pas accès au Bureau exécutif.");
       return;
     }
@@ -624,9 +658,8 @@ return `<div class="stat-card" style="--kpi-color:${color}">
     const c = container();
     c.innerHTML = `
       <div class="toolbar" style="flex-wrap: wrap; gap: 10px;">
-        <input type="search" id="adhSearch" placeholder="${isBureau ? 'Rechercher (nom et/ou prénom, matricule, type badge, téléphone, profession)…' : 'Rechercher (nom et/ou prénom, matricule, NIN, document, téléphone, profession)…'}" />
+        <input type="search" id="adhSearch" placeholder="${isBureau ? 'Rechercher (nom, matricule, type badge, téléphone, profession)…' : 'Rechercher (nom, matricule, NIN, document, téléphone, profession)…'}" />
         <select id="adhWilaya"><option value="">Toutes wilayas</option>${REF.wilayas.map((w) => `<option value="${w.code}">${w.code} — ${esc(w.nom)}</option>`).join('')}</select>
-        <select id="adhAnnee" title="Filtrer par année d'adhésion"><option value="">Toutes années</option></select>
         ${isBureau ? '' : `<select id="adhType"><option value="">Tous types</option>${filteredTypeOptions(false)}</select>`}
         <select id="adhPaiement">
           <option value="">Tous paiements</option>
@@ -636,11 +669,6 @@ return `<div class="stat-card" style="--kpi-color:${color}">
           <option value="cheque">Chèque</option>
           <option value="espece">Espèce</option>
           <option value="virement">Virement</option>
-        </select>
-        <select id="adhValidite" title="Filtrer par validité d'adhésion">
-          <option value="">Toutes validités</option>
-          <option value="valide">✓ Adhésion valide</option>
-          <option value="expire">✕ Adhésion expirée</option>
         </select>
         <select id="adhEtoiles" title="Filtrer par étoiles">
           <option value="">Toutes étoiles</option>
@@ -661,8 +689,8 @@ return `<div class="stat-card" style="--kpi-color:${color}">
           <option value="5">5 −</option>
         </select>
         <button class="btn btn-dark" id="refreshAdhBtn" title="Rafraîchir">⟳ Rafraîchir</button>
-        <button class="btn btn-gold" id="addAdhBtn">+ ${isBureau ? 'Nouveau membre BE' : 'Nouvel adhérent'}</button>
-        <button class="btn btn-danger" id="bulkDeleteAdhBtn" style="display: none;">✕ Supprimer la sélection (<span id="bulkAdhCount">0</span>)</button>
+        ${(isBureau ? canEditBE() : canAddAdherents()) ? `<button class="btn btn-gold" id="addAdhBtn">+ ${isBureau ? 'Nouveau membre BE' : 'Nouvel adhérent'}</button>` : ''}
+        ${(isBureau ? canEditBE() : canManageAdherents()) ? `<button class="btn btn-danger" id="bulkDeleteAdhBtn" style="display: none;">✕ Supprimer la sélection (<span id="bulkAdhCount">0</span>)</button>` : ''}
       </div>
       ${isBureau ? '' : '<div id="adhNotifZone"></div>'}
       <div id="adhTable"><div class="muted">Chargement…</div></div>`;
@@ -671,8 +699,6 @@ return `<div class="stat-card" style="--kpi-color:${color}">
       const params = {};
       const q = $('#adhSearch').value.trim(); if (q) params.q = q;
       const w = $('#adhWilaya').value; if (w) params.wilaya = w;
-      const an = $('#adhAnnee') ? $('#adhAnnee').value : ''; if (an) params.annee = an;
-      const v = $('#adhValidite') ? $('#adhValidite').value : ''; if (v) params.validite = v;
       const p = $('#adhPaiement') ? $('#adhPaiement').value : ''; if (p) params.paiement = p;
       if (isBureau) {
         params.type = 'BE';
@@ -699,24 +725,11 @@ return `<div class="stat-card" style="--kpi-color:${color}">
       updateBulkButton();
     }
 
-    // ✅ Remplit le filtre « Année » avec les années réellement présentes en base
-    // (si un adhérent 2027 est inséré, 2027 apparaît automatiquement).
-    async function refreshAnnees() {
-      const sel = $('#adhAnnee');
-      if (!sel) return;
-      try {
-        const annees = await API.adherentsAnnees(isBureau ? { type: 'BE' } : {});
-        const list = Array.isArray(annees) ? annees : [];
-        const current = sel.value;
-        sel.innerHTML = '<option value="">Toutes années</option>' + list.map((y) => `<option value="${y}">${y}</option>`).join('');
-        if (current && list.map(String).includes(String(current))) sel.value = current;
-      } catch (e) { /* silencieux : le filtre reste sur « Toutes années » */ }
-    }
-
     function updateBulkButton() {
       const checkedBoxes = document.querySelectorAll('.adh-checkbox:checked');
       const bulkBtn = $('#bulkDeleteAdhBtn');
       const bulkCount = $('#bulkAdhCount');
+      if (!bulkBtn || !bulkCount) return;
       if (checkedBoxes.length > 0) {
         bulkCount.textContent = checkedBoxes.length;
         bulkBtn.style.display = 'inline-block';
@@ -725,7 +738,7 @@ return `<div class="stat-card" style="--kpi-color:${color}">
       }
     }
 
-    $('#bulkDeleteAdhBtn').onclick = () => {
+    if ($('#bulkDeleteAdhBtn')) $('#bulkDeleteAdhBtn').onclick = () => {
       const checkedBoxes = document.querySelectorAll('.adh-checkbox:checked');
       const idsToDelete = Array.from(checkedBoxes).map(cb => cb.value);
       confirm(`Supprimer définitivement ces ${idsToDelete.length} fiche(s) ?`, async () => {
@@ -746,8 +759,6 @@ return `<div class="stat-card" style="--kpi-color:${color}">
     let timer;
     $('#adhSearch').oninput = () => { clearTimeout(timer); timer = setTimeout(load, 280); };
     $('#adhWilaya').onchange = load;
-    if ($('#adhAnnee')) $('#adhAnnee').onchange = load;
-    if ($('#adhValidite')) $('#adhValidite').onchange = load;
     if (!isBureau) $('#adhType').onchange = load;
     if ($('#adhPaiement')) $('#adhPaiement').onchange = load;
     if ($('#adhEtoiles')) $('#adhEtoiles').onchange = load;
@@ -755,13 +766,13 @@ return `<div class="stat-card" style="--kpi-color:${color}">
     // compat old id
     if ($('#adhMalus')) $('#adhMalus').onchange = load;
     $('#refreshAdhBtn').onclick = () => { load(); toast('Liste actualisée.'); };
-    $('#addAdhBtn').onclick = () => adherentForm(isBureau ? { type_code: 'BE', niveau: 'Bureau exécutif' } : null, () => { refreshAnnees(); load(); });
-    refreshAnnees();
+    if ($('#addAdhBtn')) $('#addAdhBtn').onclick = () => adherentForm(isBureau ? { type_code: 'BE', niveau: 'Bureau exécutif' } : null, load);
     load();
   }
 
   function renderMembersTable(list, { mode = 'adherents', reload } = {}) {
     const isBureau = mode === 'bureau';
+    const canWrite = isBureau ? canEditBE() : canManageAdherents();
     const t = $('#adhTable');
     if (!list.length) {
       t.innerHTML = UI.emptyState(isBureau ? '🏛️' : '👤', isBureau ? 'Aucun membre du Bureau exécutif trouvé.' : 'Aucun adhérent trouvé.');
@@ -770,7 +781,7 @@ return `<div class="stat-card" style="--kpi-color:${color}">
 
     t.innerHTML = `<div class="table-wrap"><table class="data">
       <thead><tr>
-        <th width="40"><input type="checkbox" id="selectAllAdh" /></th>
+        ${canWrite ? '<th width="40"><input type="checkbox" id="selectAllAdh" /></th>' : ''}
         <th width="50">Photo</th>
         <th>Nom & Prénom</th>
         <th>${isBureau ? 'Badge spécial' : 'Téléphone'}</th>
@@ -787,14 +798,13 @@ return `<div class="stat-card" style="--kpi-color:${color}">
           ? `<div style="font-weight:600;color:${expiry.isExpired ? '#dc2626' : expiry.isSoon ? '#d97706' : 'var(--text)'}">${esc(expiry.expirationText)}</div><div class="muted" style="font-size:11px">${expiry.isExpired ? 'Expirée' : expiry.isSoon ? `Expire dans ${expiry.daysLeft} jour${expiry.daysLeft > 1 ? 's' : ''}` : 'Valide'}</div>`
           : '<span class="muted">—</span>';
         const photoHtml = a.photo
-          ? `<img src="/uploads/${esc(a.photo)}" style="width:42px;height:42px;border-radius:10px;object-fit:cover;border:1px solid var(--border-strong);" />`
+          ? `<img src="/uploads/${esc(a.photo)}?token=${encodeURIComponent(API.getToken() || '')}" style="width:42px;height:42px;border-radius:10px;object-fit:cover;border:1px solid var(--border-strong);" />`
           : `<div class="profile-photo-ph" style="width:42px;height:42px;border-radius:10px;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;background:var(--gold-grad);color:#fff;">${esc((a.prenom || a.nom || 'A')[0].toUpperCase())}</div>`;
         const cvBadge = (a.profession || a.fonction || a.diplome || a.nom_soc) ? `<div style="margin-top:3px"><span class="tag" style="background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;font-size:10px;padding:2px 6px">📄 ${esc((a.profession || a.fonction || '').slice(0,18) || a.nom_soc?.slice(0,18) || 'CV')}</span></div>` : '';
-        const beHint = (!isBureau && a.type_code === 'BE') ? '<span title="Membre du Bureau exécutif" style="margin-right:5px">🏛️</span>' : '';
-        const nameCell = `<div class="cell-strong">${beHint}${esc((a.nom || '').trim() || '—')} ${esc((a.prenom || '').trim() || '')}</div><div class="mono" style="font-size:11.5px;color:var(--gold-2);margin-top:2px;">${esc(a.matricule || '—')}</div>${a.nom_soc ? `<div style="font-size:11px;color:var(--muted)">${esc(a.nom_soc)}</div>` : ''}${cvBadge}`;
+        const nameCell = `<div class="cell-strong">${esc((a.nom || '').trim() || '—')} ${esc((a.prenom || '').trim() || '')}</div><div class="mono" style="font-size:11.5px;color:var(--gold-2);margin-top:2px;">${esc(a.matricule || '—')}</div>${a.nom_soc ? `<div style="font-size:11px;color:var(--muted)">${esc(a.nom_soc)}</div>` : ''}${cvBadge}`;
         const paiementHtml = a.paiement_mode === 'non_assujetti' ? '<span class="tag" style="background:#f0ead8;color:#8a6e18">⊘ Non assujetti</span>' : a.paiement_mode ? '<span class="tag tag-actif">✓ Oui</span>' : '<span class="tag tag-inactif">✕ Non</span>';
         return `<tr>
-        <td><input type="checkbox" class="adh-checkbox" value="${a.id}" /></td>
+        ${canWrite ? `<td><input type="checkbox" class="adh-checkbox" value="${a.id}" /></td>` : ''}
         <td>${photoHtml}</td>
         <td>${nameCell}</td>
         <td>${isBureau ? specialBadge() : esc(a.telephone || '—')}</td>
@@ -805,9 +815,9 @@ return `<div class="stat-card" style="--kpi-color:${color}">
         <td>${paiementHtml}</td>
         <td><div class="row-actions">
           <button class="btn btn-dark btn-sm" data-view="${a.id}">Voir</button>
-          ${isBureau ? '' : `<button class="btn btn-gold btn-sm" data-renew="${a.id}">Renouveler</button>`}
-          <button class="btn btn-dark btn-sm" data-edit="${a.id}">✎</button>
-          <button class="btn btn-danger btn-sm" data-del="${a.id}">✕</button>
+          ${(!isBureau && canWrite) ? `<button class="btn btn-gold btn-sm" data-renew="${a.id}">Renouveler</button>` : ''}
+          ${canWrite ? `<button class="btn btn-dark btn-sm" data-edit="${a.id}">✎</button>` : ''}
+          ${canWrite ? `<button class="btn btn-danger btn-sm" data-del="${a.id}">✕</button>` : ''}
         </div></td>
       </tr>`;}).join('')}
       </tbody></table></div>
@@ -819,28 +829,22 @@ return `<div class="stat-card" style="--kpi-color:${color}">
     const countSpan = $('#bulkAdhCount');
 
     function updateBulkBtn() {
+      if (!bulkBtn || !countSpan || !selectAll) return;
       const checkedCount = t.querySelectorAll('.adh-checkbox:checked').length;
       countSpan.textContent = checkedCount;
       bulkBtn.style.display = checkedCount > 0 ? 'inline-block' : 'none';
       selectAll.checked = checkedCount === checkboxes.length && checkboxes.length > 0;
     }
 
-    selectAll.onchange = () => {
-      checkboxes.forEach(cb => cb.checked = selectAll.checked);
-      updateBulkBtn();
-    };
+    if (selectAll) {
+      selectAll.onchange = () => {
+        checkboxes.forEach(cb => cb.checked = selectAll.checked);
+        updateBulkBtn();
+      };
+    }
     checkboxes.forEach(cb => cb.onchange = updateBulkBtn);
 
-    // ✅ Carte id → membre : un membre du Bureau exécutif trouvé dans la
-    //    recherche « Adhérents » ouvre sa fiche, puis le bouton « Retour »
-    //    ramène vers la rubrique Bureau exécutif (onBackList = null →
-    //    adherentDetail choisit bureauExecutifList pour les BE).
-    const membersById = Object.fromEntries(list.map((a) => [String(a.id), a]));
-    t.querySelectorAll('[data-view]').forEach((b) => b.onclick = () => {
-      const m = membersById[b.dataset.view];
-      const isBEInAdherents = !isBureau && m && m.type_code === 'BE';
-      adherentDetail(b.dataset.view, isBEInAdherents ? null : reload);
-    });
+    t.querySelectorAll('[data-view]').forEach((b) => b.onclick = () => adherentDetail(b.dataset.view, reload));
     t.querySelectorAll('[data-renew]').forEach((b) => b.onclick = async () => {
       const current = await API.adherent(b.dataset.renew);
       const today = new Date().toISOString().slice(0, 10);
@@ -1502,8 +1506,8 @@ openModal(
       <div class="modal-foot">
         <button class="btn btn-ghost" id="dDossier">📄 Dossier à remplir</button>
         <button class="btn btn-ghost" id="dCarte">📇 Carte (recto/verso)</button>
-        ${a.type_code !== 'BE' ? '<button class="btn btn-gold" id="dRenew">↻ Renouveler</button>' : ''}
-        <button class="btn btn-dark" id="dEdit">✎ Modifier</button>
+        ${(a.type_code !== 'BE' && canManageAdherents()) ? '<button class="btn btn-gold" id="dRenew">↻ Renouveler</button>' : ''}
+        ${(a.type_code === 'BE' ? canEditBE() : canManageAdherents()) ? '<button class="btn btn-dark" id="dEdit">✎ Modifier</button>' : ''}
         <button class="btn btn-gold" id="dClose">Fermer</button>
       </div>`, true);
 
@@ -1515,7 +1519,7 @@ openModal(
       const today = new Date().toISOString().slice(0, 10);
       adherentForm({ ...a, date_adhesion: today, __renewal: true }, () => { closeModal(); backTo(); });
     };
-    $('#dEdit').onclick = () => adherentForm(a, () => { closeModal(); backTo(); });
+    if ($('#dEdit')) $('#dEdit').onclick = () => adherentForm(a, () => { closeModal(); backTo(); });
   }
 
   function detailItem(lbl, val) {
@@ -1524,16 +1528,16 @@ openModal(
 
   function downloadDossier(id) {
     try {
-      const win = window.open('/api/adherents/' + id + '/dossier?token=' + API.getToken(), '_blank');
+      const win = window.open('/api/adherents/' + encodeURIComponent(id) + '/dossier?token=' + encodeURIComponent(API.getToken() || ''), '_blank');
       if (!win) toast('Autorisez les pop-ups pour afficher le dossier.', 'error');
-    } catch { toast('Impossible d\'ouvrir le dossier.', 'error'); }
+    } catch { toast("Impossible d'ouvrir le dossier.", 'error'); }
   }
 
   function downloadCarte(id, matricule) {
     try {
-      const win = window.open('/api/adherents/' + id + '/carte?token=' + API.getToken(), '_blank');
+      const win = window.open('/api/adherents/' + encodeURIComponent(id) + '/carte?token=' + encodeURIComponent(API.getToken() || ''), '_blank');
       if (!win) toast('Autorisez les pop-ups pour afficher la carte.', 'error');
-    } catch { toast('Impossible d\'ouvrir la carte.', 'error'); }
+    } catch { toast("Impossible d'ouvrir la carte.", 'error'); }
   }
 
 /* ============ DEMANDES ============ */
@@ -1810,7 +1814,7 @@ async function documentsList() {
     c.innerHTML = UI.emptyState('🔒', 'Accès réservé aux comptes autorisés à consulter les documents.');
     return;
   }
-  const readOnlyDocs = !(ROLE === 'admin' || ROLE === 'president');
+  const readOnlyDocs = !canEditDocuments();
   c.innerHTML = `
     <div class="toolbar" style="flex-wrap: wrap; gap: 10px; align-items: center;">
       <input type="search" id="docSearch" placeholder="Rechercher (nom, prénom, matricule)…" />
@@ -1986,12 +1990,15 @@ async function documentsList() {
   function parametres() {
     const c = container();
 
-    if (isSaisieOnly()) {
-      c.innerHTML = UI.emptyState('🔒', "Ce compte ne peut ni changer son mot de passe ni faire des sauvegardes.");
+    if (!canViewParametres()) {
+      c.innerHTML = UI.emptyState('🔒', "Ce compte n'a pas accès à la rubrique Paramètres.");
       return;
     }
 
+    const canWriteParam = canEditParametres();
+
     c.innerHTML = `
+      ${canWriteParam ? `
       <div class="panel" style="max-width:520px">
         <div class="panel-head"><h3>Changer mon mot de passe</h3></div>
         <form id="pwForm">
@@ -2000,17 +2007,17 @@ async function documentsList() {
           <div class="form-error" id="pwErr"></div>
           <button type="submit" class="btn btn-gold">Mettre à jour</button>
         </form>
-      </div>
+      </div>` : ''}
       <div class="panel" style="max-width:680px">
         <div class="panel-head">
           <h3>Sauvegarde de la base de données</h3>
-          <button class="btn btn-gold" id="backupBtn">💾 Sauvegarder maintenant</button>
+          ${canWriteParam ? '<button class="btn btn-gold" id="backupBtn">💾 Sauvegarder maintenant</button>' : ''}
         </div>
         <p class="muted" style="margin-bottom:14px">Une <b>sauvegarde mensuelle automatique</b> est téléchargée quand un administrateur ou le président se connecte sur ce PC pour la première fois du mois. Les sauvegardes serveur restent aussi disponibles ci-dessous.</p>
         <div id="backupMsg" class="muted" style="margin-bottom:12px"></div>
         <div id="backupList"><div class="muted">Chargement des sauvegardes…</div></div>
       </div>`;
-    $('#pwForm').onsubmit = async (e) => {
+    if ($('#pwForm')) $('#pwForm').onsubmit = async (e) => {
       e.preventDefault();
       const f = e.target;
       try {
@@ -2045,7 +2052,7 @@ async function documentsList() {
       } catch (err) { $('#backupList').innerHTML = `<p class="form-error">${esc(err.message)}</p>`; }
     }
 
-    $('#backupBtn').onclick = async () => {
+    if ($('#backupBtn')) $('#backupBtn').onclick = async () => {
       $('#backupMsg').textContent = 'Sauvegarde en cours…';
       try {
         const r = await API.backup();
@@ -2076,57 +2083,319 @@ async function documentsList() {
   }
 
   /* ============ COMPTES UTILISATEURS ============ */
-   async function comptesList() {
+  const RUBRIQUES_ACCESS = [
+    {
+      key: 'dashboard',
+      label: 'Tableau de bord',
+      desc: 'Statistiques globales, graphiques et indicateurs.',
+      readPerm: 'dashboard_view',
+      writePerm: 'dashboard_edit',
+    },
+    {
+      key: 'adherents',
+      label: 'Adhérents',
+      desc: 'Liste, fiches, cartes, dossiers et gestion des adhérents.',
+      readPerm: 'adherents_view',
+      addOnlyPerm: 'adherents_add',
+      writePerm: 'adherents_manage',
+    },
+    {
+      key: 'services',
+      label: 'Services aux adhérents',
+      desc: 'Historique et suivi des services rendus aux adhérents.',
+      readPerm: 'services_view',
+      writePerm: 'services_edit',
+    },
+    {
+      key: 'bureau',
+      label: 'Bureau exécutif',
+      desc: 'Membres et badges du Bureau exécutif.',
+      readPerm: 'bureau_view',
+      writePerm: 'bureau_edit',
+    },
+    {
+      key: 'blacklist',
+      label: 'Blacklist (Liste noire)',
+      desc: 'Signalements et liste noire OPA.',
+      readPerm: 'blacklist_view',
+      writePerm: 'blacklist_edit',
+    },
+    {
+      key: 'demandes',
+      label: 'Demandes (site web)',
+      desc: 'Réception, traitement et clôture des demandes.',
+      readPerm: 'demandes_view',
+      writePerm: 'demandes_edit',
+    },
+    {
+      key: 'documents',
+      label: 'Documents (Gestion documentaire)',
+      desc: 'Consultation, fusion PDF et suppression des dossiers.',
+      readPerm: 'documents_view',
+      writePerm: 'documents_edit',
+    },
+    {
+      key: 'finances',
+      label: 'Finances (BDL, CPA, Caisse)',
+      desc: 'Soldes, encaissements, sorties et mouvements.',
+      readPerm: 'finances_view',
+      writePerm: 'finances_edit',
+    },
+    {
+      key: 'comptes',
+      label: 'Comptes utilisateurs',
+      desc: 'Consultation et gestion des comptes et droits d’accès.',
+      readPerm: 'comptes_view',
+      writePerm: 'comptes_edit',
+    },
+    {
+      key: 'parametres',
+      label: 'Paramètres & Sauvegardes',
+      desc: 'Mot de passe et sauvegardes de la base de données.',
+      readPerm: 'parametres_view',
+      writePerm: 'parametres_edit',
+    },
+    {
+      key: 'audit',
+      label: "Journal d'audit",
+      desc: 'Historique complet des connexions et actions.',
+      readPerm: 'audit_view',
+      writePerm: 'audit_edit',
+    },
+  ];
+
+  function currentRubriqueLevel(rub, perms = []) {
+    const p = Array.isArray(perms) ? perms : [];
+    if (rub.writePerm && p.includes(rub.writePerm)) return rub.writePerm;
+    if (rub.addOnlyPerm && p.includes(rub.addOnlyPerm)) return rub.addOnlyPerm;
+    if (rub.readPerm && p.includes(rub.readPerm)) return rub.readPerm;
+    return '';
+  }
+
+  function renderUserRubriquesBadges(u) {
+    if (u.role === 'admin' || u.role === 'president') {
+      return '<span class="tag tag-gold">Accès complet (toutes les rubriques)</span>';
+    }
+    const perms = Array.isArray(u.permissions) ? u.permissions : [];
+    const badges = [];
+    for (const rub of RUBRIQUES_ACCESS) {
+      const lv = currentRubriqueLevel(rub, perms);
+      if (!lv) continue;
+      let modeTxt = 'Lecture seule';
+      let style = 'background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;';
+      if (lv === rub.writePerm) {
+        modeTxt = 'Lecture & écriture';
+        style = 'background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;';
+      } else if (lv === rub.addOnlyPerm) {
+        modeTxt = 'Ajout seul';
+        style = 'background:#fef3c7;color:#b45309;border:1px solid #fde68a;';
+      }
+      badges.push(
+        `<span class="tag" style="${style}margin:2px 4px 2px 0;display:inline-flex;align-items:center;gap:4px;font-size:11.5px;"><b>${esc(rub.label)}</b> · ${modeTxt}</span>`
+      );
+    }
+    return badges.length ? badges.join('') : '<span class="muted">Aucun accès</span>';
+  }
+
+  function buildRubriquesSelectorHtml(selectedPerms = []) {
+    return `
+      <style>
+        .rub-matrix {
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          overflow: hidden;
+          background: var(--panel);
+        }
+        .rub-toolbar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          flex-wrap: wrap;
+          gap: 8px;
+          padding: 10px 14px;
+          background: var(--panel-2, #f8fafc);
+          border-bottom: 1px solid var(--border);
+        }
+        .rub-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 10px 14px;
+          border-bottom: 1px solid var(--border);
+          flex-wrap: wrap;
+        }
+        .rub-row:last-child { border-bottom: none; }
+        .rub-info {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          min-width: 210px;
+          flex: 1;
+        }
+        .rub-title { font-weight: 700; font-size: 13.5px; color: var(--text); }
+        .rub-desc { font-size: 11.5px; color: var(--text-mute); }
+        .rub-choices {
+          display: inline-flex;
+          gap: 6px;
+          flex-wrap: wrap;
+        }
+        .rub-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 5px 10px;
+          border-radius: 999px;
+          border: 1px solid var(--border-strong, #cbd5e1);
+          font-size: 12px;
+          font-weight: 600;
+          cursor: pointer;
+          user-select: none;
+          background: var(--panel, #fff);
+          color: var(--text-dim);
+          transition: all .15s;
+        }
+        .rub-pill input { margin: 0; cursor: pointer; }
+        .rub-pill:has(input:checked)[data-mode="none"] {
+          background: #f1f5f9; color: #475569; border-color: #94a3b8;
+        }
+        .rub-pill:has(input:checked)[data-mode="read"] {
+          background: #eff6ff; color: #1d4ed8; border-color: #60a5fa;
+        }
+        .rub-pill:has(input:checked)[data-mode="add"] {
+          background: #fef3c7; color: #b45309; border-color: #f59e0b;
+        }
+        .rub-pill:has(input:checked)[data-mode="write"] {
+          background: #ecfdf5; color: #047857; border-color: #34d399;
+        }
+      </style>
+      <div class="rub-matrix">
+        <div class="rub-toolbar">
+          <span style="font-size:12.5px;font-weight:700;color:var(--text)">Choisissez le droit d'accès pour chaque rubrique :</span>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button type="button" class="btn btn-ghost btn-sm" id="rubAllNone">Tout décocher</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="rubAllRead">Tout en Lecture seule</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="rubAllWrite">Tout en Lecture & écriture</button>
+          </div>
+        </div>
+        ${RUBRIQUES_ACCESS.map((rub) => {
+          const cur = currentRubriqueLevel(rub, selectedPerms);
+          const radioName = `rub_${rub.key}`;
+          return `
+            <div class="rub-row" data-rub-row="${rub.key}">
+              <div class="rub-info">
+                <div>
+                  <div class="rub-title">${esc(rub.label)}</div>
+                  <div class="rub-desc">${esc(rub.desc)}</div>
+                </div>
+              </div>
+              <div class="rub-choices">
+                <label class="rub-pill" data-mode="none">
+                  <input type="radio" name="${radioName}" value="" ${cur === '' ? 'checked' : ''} />
+                  <span>Aucun accès</span>
+                </label>
+                <label class="rub-pill" data-mode="read">
+                  <input type="radio" name="${radioName}" value="${rub.readPerm}" ${cur === rub.readPerm ? 'checked' : ''} />
+                  <span>Lecture seule</span>
+                </label>
+                ${rub.addOnlyPerm ? `
+                <label class="rub-pill" data-mode="add">
+                  <input type="radio" name="${radioName}" value="${rub.addOnlyPerm}" ${cur === rub.addOnlyPerm ? 'checked' : ''} />
+                  <span>Ajout seul</span>
+                </label>` : ''}
+                <label class="rub-pill" data-mode="write">
+                  <input type="radio" name="${radioName}" value="${rub.writePerm}" ${cur === rub.writePerm ? 'checked' : ''} />
+                  <span>Lecture & écriture</span>
+                </label>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  function bindRubriquesQuickButtons(formEl) {
+    const setAll = (mode) => {
+      for (const rub of RUBRIQUES_ACCESS) {
+        const val = mode === 'read' ? rub.readPerm : mode === 'write' ? rub.writePerm : '';
+        const radio = formEl.querySelector(`input[name="rub_${rub.key}"][value="${val}"]`);
+        if (radio) radio.checked = true;
+      }
+    };
+    const btnNone = formEl.querySelector('#rubAllNone');
+    const btnRead = formEl.querySelector('#rubAllRead');
+    const btnWrite = formEl.querySelector('#rubAllWrite');
+    if (btnNone) btnNone.onclick = () => setAll('none');
+    if (btnRead) btnRead.onclick = () => setAll('read');
+    if (btnWrite) btnWrite.onclick = () => setAll('write');
+  }
+
+  function collectSelectedRubriquesPerms(formEl) {
+    const perms = [];
+    for (const rub of RUBRIQUES_ACCESS) {
+      const checked = formEl.querySelector(`input[name="rub_${rub.key}"]:checked`);
+      if (checked && checked.value) perms.push(checked.value);
+    }
+    return perms;
+  }
+
+  async function comptesList() {
     const c = container();
+    if (!canViewComptes()) {
+      c.innerHTML = UI.emptyState('🔒', 'Accès réservé aux comptes autorisés.');
+      return;
+    }
+    const canWriteComptes = canEditComptes();
     c.innerHTML = `
       <div class="toolbar">
         <h3 style="flex:1;color:var(--text)">Comptes utilisateurs</h3>
-        <button class="btn btn-gold" id="addUserBtn">+ Nouveau compte</button>
+        ${canWriteComptes ? '<button class="btn btn-gold" id="addUserBtn">+ Nouveau compte</button>' : ''}
       </div>
-      <p class="muted" style="margin:-6px 0 16px">Créez un <b>compte personnalisé</b> et cochez un ou plusieurs accès selon le besoin.</p>
+      <p class="muted" style="margin:-6px 0 16px">Créez un utilisateur avec son <b>nom (ou email)</b> et son <b>mot de passe</b>, puis choisissez pour chaque rubrique : <b>Lecture seule</b> ou <b>Lecture & écriture</b>.</p>
       <div id="usersTable"><div class="muted">Chargement…</div></div>`;
+
+    let currentUsers = [];
+
     async function load() {
       const users = await API.users();
+      currentUsers = users;
       const t = $('#usersTable');
       const roleLabel = { admin: 'Administrateur', president: 'Président', saisie: 'Compte personnalisé' };
-      const permLabel = {
-        adherents_add: 'Ajouter des adhérents',
-        adherents_manage: 'Ajouter et modifier les adhérents',
-        demandes_view: 'Consulter les demandes',
-        demandes_edit: 'Consulter et modifier les demandes',
-        documents_view: 'Consulter les documents des adhérents',
-      };
+
       t.innerHTML = `<div class="table-wrap"><table class="data">
-        <thead><tr><th>Email</th><th>Téléphone</th><th>Rôle</th><th>Accès</th><th>Créé le</th><th></th></tr></thead>
+        <thead><tr><th>Nom d'utilisateur / Email</th><th>Rôle</th><th>Rubriques & Droits attribués</th><th>Créé le</th><th></th></tr></thead>
         <tbody>${users.map((u) => {
           const isPresident = u.role === 'president';
           const actions = isPresident
-            ? `<span class="tag tag-gold" title="Le compte Président est protégé : il ne peut être ni modifié, ni réinitialisé, ni supprimé par l'administrateur.">🔒 Compte protégé</span>`
-            : `<div class="row-actions">
-                <button class="btn btn-dark btn-sm" data-pwd="${u.id}" data-email="${esc(u.email)}">🔑 Mot de passe</button>
-                <button class="btn btn-danger btn-sm" data-del="${u.id}">✕</button>
-              </div>`;
-          const access = u.role === 'admin' || u.role === 'president'
-            ? 'Accès complet'
-            : (u.permissions || []).map((p) => permLabel[p] || p).join(' • ');
+            ? `<span class="tag tag-gold" title="Le compte Président est protégé : il ne peut être ni modifié, ni réinitialisé, ni supprimé par l'administrateur.">Compte protégé</span>`
+            : canWriteComptes
+              ? `<div class="row-actions">
+                  <button class="btn btn-gold btn-sm" data-edit-user="${u.id}">Rubriques & Accès</button>
+                  <button class="btn btn-dark btn-sm" data-pwd="${u.id}" data-email="${esc(u.email)}">Mot de passe</button>
+                  <button class="btn btn-danger btn-sm" data-del="${u.id}">Supprimer</button>
+                </div>`
+              : '<span class="muted">—</span>';
+
           return `<tr>
             <td class="cell-strong">${esc(u.email)}</td>
-            <td>${u.telephone ? `<span class="mono">${esc(u.telephone)}</span>` : '<span class="muted">—</span>'}</td>
             <td>${esc(roleLabel[u.role] || u.role)}</td>
-            <td>${esc(access || '—')}</td>
+            <td style="max-width:520px">${renderUserRubriquesBadges(u)}</td>
             <td class="muted">${esc((u.created_at || '').slice(0,10))}</td>
             <td>${actions}</td>
           </tr>`;
         }).join('')}</tbody></table></div>`;
+
       t.querySelectorAll('[data-del]').forEach((b) => b.onclick = () => confirm('Supprimer ce compte ?', async () => {
         try { await API.deleteUser(b.dataset.del); toast('Compte supprimé.'); load(); }
         catch (e) { toast(e.message, 'error'); }
       }));
+
       t.querySelectorAll('[data-pwd]').forEach((b) => b.onclick = () => {
         openModal('Réinitialiser le mot de passe', `
-          <p class="muted" style="margin-bottom:12px">${esc(b.dataset.email)}</p>
+          <p class="muted" style="margin-bottom:12px">Utilisateur : <b>${esc(b.dataset.email)}</b></p>
           <form id="pwdForm">
-            <div class="field"><label>Nouveau mot de passe</label><input type="text" name="password" required minlength="6" /></div>
+            <div class="field"><label>Nouveau mot de passe *</label><input type="text" name="password" required minlength="6" placeholder="6 caractères minimum" /></div>
             <div class="form-error" id="pwdErr"></div>
             <div class="modal-foot"><button type="button" class="btn btn-ghost" id="pwdCancel">Annuler</button>
             <button type="submit" class="btn btn-gold">Enregistrer</button></div>
@@ -2138,143 +2407,116 @@ async function documentsList() {
           catch (err) { $('#pwdErr').textContent = err.message; }
         };
       });
+
+      t.querySelectorAll('[data-edit-user]').forEach((b) => b.onclick = () => {
+        const u = currentUsers.find((x) => String(x.id) === String(b.dataset.editUser));
+        if (u) openUserModal(u, load);
+      });
     }
-    $('#addUserBtn').onclick = () => {
-      openModal('Nouveau compte', `
-  <style>
-    .access-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
 
-.access-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 12px 0;
-  cursor: pointer;
-  border-bottom: 1px solid var(--border);
-}
+    function openUserModal(existingUser = null, onDone = load) {
+      const isEdit = !!existingUser;
+      const initialPerms = isEdit
+        ? (existingUser.role === 'admin' ? RUBRIQUES_ACCESS.map((r) => r.writePerm) : (existingUser.permissions || []))
+        : ['adherents_view'];
+      const initialRole = isEdit ? (existingUser.role || 'saisie') : 'saisie';
 
-.access-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex: 1;
-  min-width: 0;
-}
+      openModal(isEdit ? `Modifier le compte — ${existingUser.email}` : 'Nouveau compte utilisateur', `
+        <form id="userForm">
+          <div class="form-grid">
+            <div class="field">
+              <label>Nom d'utilisateur ou Email *</label>
+              <input type="text" name="login" required value="${esc(existingUser?.email || '')}" autocomplete="off" />
+            </div>
+            ${isEdit ? '' : `
+            <div class="field">
+              <label>Mot de passe *</label>
+              <input type="text" name="password" required minlength="6"  autocomplete="new-password" />
+            </div>`}
+            <div class="field ${isEdit ? '' : 'full'}">
+              <label>Type de compte</label>
+              <select name="role" id="userRoleSelect">
+                <option value="saisie" ${initialRole === 'saisie' ? 'selected' : ''}>Compte personnalisé (choix par rubrique)</option>
+                <option value="admin" ${initialRole === 'admin' ? 'selected' : ''}>Administrateur (accès complet à tout)</option>
+              </select>
+            </div>
+          </div>
 
-.access-text strong {
-  font-size: 13.5px;
-  color: var(--text);
-  font-weight: 600;
-}
+          <div class="field full" id="rubriquesWrap" style="margin-top:14px;${initialRole === 'admin' ? 'display:none;' : ''}">
+            <label style="margin-bottom:8px;display:block">Attribution des rubriques (Lecture seule / Lecture & écriture) *</label>
+            ${buildRubriquesSelectorHtml(initialPerms)}
+          </div>
 
-.access-text small {
-  font-size: 12px;
-  color: var(--text-mute);
-}
+          <div class="form-error" id="userErr" style="margin-top:10px"></div>
+          <div class="modal-foot">
+            <button type="button" class="btn btn-ghost" id="userCancel">Annuler</button>
+            <button type="submit" class="btn btn-gold">${isEdit ? 'Enregistrer les modifications' : 'Créer le compte'}</button>
+          </div>
+        </form>
+      `, true);
 
-.access-item input[type="checkbox"] {
-  order: 2;
-  flex: 0 0 auto;
-  margin-left: auto !important;
-  margin-right: 0 !important;
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-  accent-color: var(--blue);
-}
-   </style>
+      const formEl = $('#userForm');
+      const roleSel = $('#userRoleSelect');
+      const rubWrap = $('#rubriquesWrap');
 
-  <form id="userForm">
-    <input type="hidden" name="role" value="saisie" />
-    <div class="form-grid">
-      <div class="field"><label>Email *</label><input type="email" name="email" required placeholder="agent@opa.dz" /></div>
-      <div class="field"><label>Mot de passe *</label><input type="text" name="password" required minlength="6" placeholder="6 caractères min." /></div>
-    </div>
-    
-    <div class="field full">
-      <label>Accès utilisateur *</label>
-      <div class="access-list">
-        <label class="access-item">
-          <span class="access-text">
-            <strong>Ajouter des adhérents</strong>
-            <small>Création d'adhérents normaux uniquement.</small>
-          </span>
-          <input type="checkbox" name="permissions" value="adherents_add" checked />
-        </label>
-        <label class="access-item">
-          <span class="access-text">
-            <strong>Ajouter et modifier les adhérents</strong>
-            <small>Accès à la liste et modification.</small>
-          </span>
-          <input type="checkbox" name="permissions" value="adherents_manage" />
-        </label>
-        <label class="access-item">
-          <span class="access-text">
-            <strong>Consulter les demandes</strong>
-            <small>Lecture seule des demandes.</small>
-          </span>
-          <input type="checkbox" name="permissions" value="demandes_view" />
-        </label>
-        <label class="access-item">
-          <span class="access-text">
-            <strong>Consulter et modifier les demandes</strong>
-            <small>Traitement et clôture des demandes.</small>
-          </span>
-          <input type="checkbox" name="permissions" value="demandes_edit" />
-        </label>
-        <label class="access-item">
-          <span class="access-text">
-            <strong>Consulter les documents</strong>
-            <small>Consultation des documents liés.</small>
-          </span>
-          <input type="checkbox" name="permissions" value="documents_view" />
-        </label>
-      </div>
-    </div>
-    
-    <div class="user-access-help">
-      Cochez les accès nécessaires. Ce compte ne peut pas changer son mot de passe ni accéder au Bureau exécutif.
-    </div>
-    <div class="form-error" id="userErr"></div>
-    <div class="modal-foot">
-      <button type="button" class="btn btn-ghost" id="userCancel">Annuler</button>
-      <button type="submit" class="btn btn-gold">Créer le compte</button>
-    </div>
-  </form>
-`);
+      roleSel.onchange = () => {
+        rubWrap.style.display = roleSel.value === 'admin' ? 'none' : '';
+      };
+
+      bindRubriquesQuickButtons(formEl);
       $('#userCancel').onclick = closeModal;
-      $('#userForm').onsubmit = async (e) => {
+
+      formEl.onsubmit = async (e) => {
         e.preventDefault();
+        $('#userErr').textContent = '';
         const f = e.target;
-        const permissions = Array.from(f.querySelectorAll('input[name="permissions"]:checked')).map((el) => el.value);
-        if (!permissions.length) {
-          $('#userErr').textContent = 'Choisissez au moins un accès.';
+        const loginVal = f.login.value.trim();
+        const chosenRole = f.role.value || 'saisie';
+        const permissions = chosenRole === 'admin' ? [] : collectSelectedRubriquesPerms(formEl);
+
+        if (chosenRole === 'saisie' && !permissions.length) {
+          $('#userErr').textContent = 'Choisissez au moins une rubrique (en Lecture seule ou Lecture & écriture).';
           return;
         }
-        const telValue = f.telephone ? f.telephone.value.trim() : '';
+
         try {
-          await API.createUser({ email: f.email.value, password: f.password.value, role: 'saisie', permissions, telephone: telValue });
-          toast('Compte créé.'); closeModal(); load();
-        } catch (err) { $('#userErr').textContent = err.message; }
+          if (isEdit) {
+            await API.updateUserRole(existingUser.id, {
+              email: loginVal,
+              role: chosenRole,
+              permissions,
+            });
+            toast('Compte et droits mis à jour.');
+          } else {
+            await API.createUser({
+              email: loginVal,
+              password: f.password.value,
+              role: chosenRole,
+              permissions,
+            });
+            toast('Compte créé avec succès.');
+          }
+          closeModal();
+          onDone && onDone();
+        } catch (err) {
+          $('#userErr').textContent = err.message;
+        }
       };
-    };
+    }
+
+    if ($('#addUserBtn')) $('#addUserBtn').onclick = () => openUserModal(null, load);
     load();
   }
-
 
   /* ============ BLACKLIST ============ */
 
   async function blacklistList() {
     const c = container();
-    if (!(ROLE === 'admin' || ROLE === 'president')) {
-      c.innerHTML = UI.emptyState('🔒', 'Accès réservé à l’administrateur et au président.');
+    if (!canViewBlacklist()) {
+      c.innerHTML = UI.emptyState('🔒', 'Accès réservé aux comptes autorisés.');
       return;
     }
+    const canWriteBl = canEditBlacklist();
     c.innerHTML = `
       <div class="panel" style="margin-bottom:18px;border:1px solid #fecaca;background:#fff5f5">
         <div style="padding:14px 16px;display:flex;align-items:center;gap:12px">
@@ -2288,7 +2530,7 @@ async function documentsList() {
       <div class="toolbar" style="flex-wrap:wrap;gap:10px">
         <input type="search" id="blSearch" placeholder="Rechercher (nom, prénom, matricule)…" />
         <button class="btn btn-dark" id="blRefresh">⟳ Rafraîchir</button>
-        <button class="btn btn-gold" id="blAdd">+ Ajouter à la blacklist</button>
+        ${canWriteBl ? '<button class="btn btn-gold" id="blAdd">+ Ajouter à la blacklist</button>' : ''}
       </div>
       <div id="blTable"><div class="muted">Chargement…</div></div>
     `;
@@ -2315,8 +2557,8 @@ async function documentsList() {
             <td style="max-width:360px"><div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(b.motif||'')}">${esc(b.motif||'—')}</div></td>
             <td><div class="row-actions">
               <button class="btn btn-dark btn-sm" data-view="${b.id}">Voir</button>
-              <button class="btn btn-gold btn-sm" data-edit="${b.id}">✎</button>
-              <button class="btn btn-danger btn-sm" data-del="${b.id}">Retirer</button>
+              ${canWriteBl ? `<button class="btn btn-gold btn-sm" data-edit="${b.id}">✎</button>` : ''}
+              ${canWriteBl ? `<button class="btn btn-danger btn-sm" data-del="${b.id}">Retirer</button>` : ''}
             </div></td>
           </tr>
         `).join('')}
@@ -2335,7 +2577,7 @@ async function documentsList() {
     let timer;
     $('#blSearch').oninput = ()=>{ clearTimeout(timer); timer=setTimeout(load, 280); };
     $('#blRefresh').onclick = ()=>{ load(); toast('Liste actualisée.'); };
-    $('#blAdd').onclick = ()=>blacklistForm(null, load);
+    if ($('#blAdd')) $('#blAdd').onclick = ()=>blacklistForm(null, load);
 
     load();
   }
@@ -2401,14 +2643,14 @@ async function documentsList() {
       </div>
       ${b.motif ? `<div class="panel" style="margin-top:14px"><div class="panel-head"><h3>Motif</h3></div><div style="padding:14px;line-height:1.6">${esc(b.motif)}</div></div>` : ''}
       <div class="modal-foot">
-        <button class="btn btn-dark" id="blEdit">✎ Modifier</button>
-        <button class="btn btn-danger" id="blRemove">Retirer de la blacklist</button>
+        ${canEditBlacklist() ? '<button class="btn btn-dark" id="blEdit">✎ Modifier</button>' : ''}
+        ${canEditBlacklist() ? '<button class="btn btn-danger" id="blRemove">Retirer de la blacklist</button>' : ''}
         <button class="btn btn-gold" id="blClose">Fermer</button>
       </div>
     `, true);
     $('#blClose').onclick = closeModal;
-    $('#blEdit').onclick = ()=>{ closeModal(); setTimeout(()=>blacklistForm(id, ()=>{ onBack && onBack(); }), 60); };
-    $('#blRemove').onclick = ()=>{
+    if ($('#blEdit')) $('#blEdit').onclick = ()=>{ closeModal(); setTimeout(()=>blacklistForm(id, ()=>{ onBack && onBack(); }), 60); };
+    if ($('#blRemove')) $('#blRemove').onclick = ()=>{
       confirm('Retirer définitivement de la blacklist ?', async ()=>{
         await API.deleteBlacklist(id);
         toast('Retiré de la blacklist.');
@@ -2687,10 +2929,11 @@ async function documentsList() {
 
   async function finances() {
     const c = container();
-    if (!(ROLE === 'admin' || ROLE === 'president')) {
-      c.innerHTML = UI.emptyState('🔒', 'Accès réservé à l’administrateur et au président.');
+    if (!canViewFinances()) {
+      c.innerHTML = UI.emptyState('🔒', 'Accès réservé aux comptes autorisés aux finances.');
       return;
     }
+    const canWriteFin = canEditFinances();
     c.innerHTML = '<div class="muted">Chargement des finances…</div>';
 
     let tab = 'dashboard';
@@ -2732,8 +2975,8 @@ async function documentsList() {
       </style>
       <div class="fin-tabs">
         <button class="fin-tab active" data-tab="dashboard">📊 Tableau de bord</button>
-        <button class="fin-tab" data-tab="encaisser">📥 Encaissements</button>
-        <button class="fin-tab" data-tab="sorties">📤 Sorties</button>
+        ${canWriteFin ? '<button class="fin-tab" data-tab="encaisser">📥 Encaissements</button>' : ''}
+        ${canWriteFin ? '<button class="fin-tab" data-tab="sorties">📤 Sorties</button>' : ''}
         <button class="fin-tab" data-tab="mouvements">📒 Mouvements</button>
         <button class="fin-tab" data-tab="comptes">🏦 Comptes</button>
       </div>
@@ -2809,13 +3052,13 @@ async function documentsList() {
               <div class="fin-solde">${fmtDA(acc.solde)}</div>
               <div class="field" style="margin-top:12px">
                 <label>Montant initial (DA)</label>
-                <input type="number" name="montant_initial" min="0" step="0.00001" value="${esc(acc.montant_initial)}" />
+                <input type="number" name="montant_initial" min="0" step="0.00001" value="${esc(acc.montant_initial)}" ${canWriteFin ? '' : 'disabled'} />
               </div>
               <div class="field">
                 <label>Observation</label>
-                <textarea name="observation" rows="3" placeholder="Notes, n° de compte, agence…">${esc(acc.observation || '')}</textarea>
+                <textarea name="observation" rows="3" placeholder="Notes, n° de compte, agence…" ${canWriteFin ? '' : 'disabled'}>${esc(acc.observation || '')}</textarea>
               </div>
-              <button type="submit" class="btn btn-gold btn-sm btn-block">Enregistrer ${esc(acc.code)}</button>
+              ${canWriteFin ? `<button type="submit" class="btn btn-gold btn-sm btn-block">Enregistrer ${esc(acc.code)}</button>` : ''}
             </form>
           `).join('')}
         </div>
@@ -3081,7 +3324,7 @@ async function documentsList() {
                 <input name="observation" />
               </div>
             </div>
-            <p class="muted" style="margin-top:8px"><b>Frais mensuels automatiques :</b> Frais ebanking BDL (2 380 DA) et Frais d’application CPA (1 071 DA) réduits automatiquement à chaque fin de mois (28, 29, 30 ou 31).</p>
+            <p class="muted" style="margin-top:8px"><b>Frais mensuels automatiques :</b> Frais ebanking BDL (2 000 DA) et Frais d’application CPA (1 071 DA) réduits automatiquement à chaque fin de mois (28, 29, 30 ou 31).</p>
             <div class="form-error" id="outErr"></div>
             <div class="modal-foot" style="margin-top:8px">
               <button type="submit" class="btn btn-gold">Enregistrer la sortie</button>
@@ -3193,7 +3436,7 @@ async function documentsList() {
       return `<div class="table-wrap"><table class="data">
         <thead><tr>
           <th>Date</th><th>Compte</th><th>Type</th><th>Nature / cause</th>
-          <th>Adhérent / détail</th><th>Chèque</th><th>Montant</th>${compact ? '' : '<th></th>'}
+          <th>Adhérent / détail</th><th>Chèque</th><th>Montant</th>${(compact || !canWriteFin) ? '' : '<th></th>'}
         </tr></thead><tbody>
         ${list.map((m) => {
           const who = m.adherent_id
@@ -3209,7 +3452,7 @@ async function documentsList() {
             <td>${who}</td>
             <td class="mono">${esc(m.cheque_numero || '—')}</td>
             <td class="${amtCls}">${sign}${fmtDA(m.montant)}</td>
-            ${compact ? '' : `<td><div class="row-actions">
+            ${(compact || !canWriteFin) ? '' : `<td><div class="row-actions">
               <button class="btn btn-dark btn-sm" data-edit-mouv="${m.id}">✎</button>
               <button class="btn btn-danger btn-sm" data-del-mouv="${m.id}">✕</button>
             </div></td>`}
@@ -3292,6 +3535,11 @@ async function documentsList() {
 
   async function servicesAdherents() {
     const c = container();
+    if (!canViewServices()) {
+      c.innerHTML = UI.emptyState('🔒', 'Accès réservé aux comptes autorisés aux services.');
+      return;
+    }
+    const canWriteSrv = canEditServices();
     c.innerHTML = '<div class="muted">Chargement de la rubrique Services…</div>';
 
     let currentTab = 'adherents'; // 'adherents' | 'services'
@@ -3406,7 +3654,7 @@ async function documentsList() {
               <button class="btn ${currentTab === 'adherents' ? 'btn-gold' : 'btn-dark'}" id="srvTabAdherents">👥 Par Adhérent</button>
               <button class="btn ${currentTab === 'services' ? 'btn-gold' : 'btn-dark'}" id="srvTabServices">📋 Tous les Services (${allServices.length})</button>
             </div>
-            <button class="btn btn-gold" id="srvAddBtn">+ Ajouter un service</button>
+            ${canWriteSrv ? '<button class="btn btn-gold" id="srvAddBtn">+ Ajouter un service</button>' : ''}
           </div>
         </div>
 
@@ -3415,7 +3663,7 @@ async function documentsList() {
 
       c.querySelector('#srvTabAdherents').onclick = () => { currentTab = 'adherents'; renderMain(); };
       c.querySelector('#srvTabServices').onclick = () => { currentTab = 'services'; renderMain(); };
-      c.querySelector('#srvAddBtn').onclick = () => openServiceModal();
+      if (c.querySelector('#srvAddBtn')) c.querySelector('#srvAddBtn').onclick = () => openServiceModal();
 
       const body = c.querySelector('#srvBody');
       if (currentTab === 'adherents') {
@@ -3460,7 +3708,7 @@ async function documentsList() {
         listEl.innerHTML = filtered.map((a) => {
           const services = adherentServicesMap[a.id] || [];
           const photoHtml = a.photo
-            ? `<img src="/uploads/${esc(a.photo)}" class="profile-photo" style="width:48px;height:48px;border-radius:10px;" />`
+            ? `<img src="/uploads/${esc(a.photo)}?token=${encodeURIComponent(API.getToken() || '')}" class="profile-photo" style="width:48px;height:48px;border-radius:10px;" />`
             : `<div class="profile-photo-ph" style="width:48px;height:48px;border-radius:10px;font-size:18px;">${esc((a.prenom || 'A')[0].toUpperCase())}</div>`;
 
           return `
@@ -3479,7 +3727,7 @@ async function documentsList() {
                 </div>
                 <div style="display:flex;align-items:center;gap:10px">
                   <span class="tag ${services.length ? 'tag-actif' : 'tag-normale'}">${services.length} service(s) rendu(s)</span>
-                  <button class="btn btn-gold btn-sm" data-add-service="${a.id}">+ Ajouter service</button>
+                  ${canWriteSrv ? `<button class="btn btn-gold btn-sm" data-add-service="${a.id}">+ Ajouter service</button>` : ''}
                   <button class="btn btn-ghost btn-sm" data-toggle-services="${a.id}">${services.length ? '▼ Voir historique' : 'Détails'}</button>
                 </div>
               </div>
@@ -3510,10 +3758,10 @@ async function documentsList() {
                             <td>${serviceTypeTag(s.type_service)}</td>
                             <td>${esc(s.description || '—')}</td>
                             <td>
-                              <div class="row-actions">
+                              ${canWriteSrv ? `<div class="row-actions">
                                 <button class="btn btn-ghost btn-sm" data-edit-srv="${s.id}">✏️</button>
                                 <button class="btn btn-danger btn-sm" data-del-srv="${s.id}">🗑️</button>
-                              </div>
+                              </div>` : '<span class="muted">—</span>'}
                             </td>
                           </tr>
                         `).join('')}
@@ -3629,10 +3877,10 @@ async function documentsList() {
             <td>${serviceTypeTag(s.type_service)}</td>
             <td class="muted" style="font-size:12px">${esc(s.created_by_email || '—')}</td>
             <td>
-              <div class="row-actions">
+              ${canWriteSrv ? `<div class="row-actions">
                 <button class="btn btn-ghost btn-sm" data-edit-srv-g="${s.id}">✏️ Éditer</button>
                 <button class="btn btn-danger btn-sm" data-del-srv-g="${s.id}">🗑️</button>
-              </div>
+              </div>` : '<span class="muted">—</span>'}
             </td>
           </tr>
         `).join('');

@@ -123,7 +123,7 @@ app.use('/api/audit', auditRoutes);
 app.use('/api/finances', financesRoutes);
 app.use('/api/services', servicesRoutes);
 
-app.post('/api/backup', authenticate, authorize('admin', 'president'), async (req, res) => {
+app.post('/api/backup', authenticate, authorize('admin', 'president', 'perm:parametres_edit'), async (req, res) => {
   try {
     const { fileName } = await runBackup();
     await logAction(req, 'BACKUP_CREATE', `Création d'une sauvegarde manuelle : ${fileName}`, null, 'backup');
@@ -133,11 +133,11 @@ app.post('/api/backup', authenticate, authorize('admin', 'president'), async (re
   }
 });
 
-app.get('/api/backup', authenticate, authorize('admin', 'president'), (req, res) => {
+app.get('/api/backup', authenticate, authorize('admin', 'president', 'perm:parametres_view', 'perm:parametres_edit'), (req, res) => {
   res.json(listBackups());
 });
 
-app.get('/api/backup/download', authenticate, authorize('admin', 'president'), async (req, res) => {
+app.get('/api/backup/download', authenticate, authorize('admin', 'president', 'perm:parametres_view', 'perm:parametres_edit'), async (req, res) => {
   const name = req.query.name || '';
   if (!name.endsWith('.sql') || name.includes('/') || name.includes('\\') || name.includes('..')) {
     return res.status(400).json({ error: 'Nom de fichier invalide.' });

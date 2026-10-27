@@ -57,19 +57,37 @@ const API = (() => {
     users: () => request('GET', '/users'),
     createUser: (data) => request('POST', '/users', data),
     resetUserPassword: (id, password) => request('PATCH', `/users/${id}/password`, { password }),
-    updateUserRole: (id, role, permissions = []) => request('PATCH', `/users/${id}/role`, { role, permissions }),
+    updateUserRole: (id, roleOrData, permissions = []) => {
+      if (roleOrData && typeof roleOrData === 'object') {
+        return request('PATCH', `/users/${id}/role`, roleOrData);
+      }
+      return request('PATCH', `/users/${id}/role`, { role: roleOrData, permissions });
+    },
     deleteUser: (id) => request('DELETE', '/users/' + id),
 
     adherents: (params = {}) => {
       const q = new URLSearchParams(params).toString();
       return request('GET', '/adherents' + (q ? '?' + q : ''));
     },
-    // ✅ Années d'adhésion présentes en base (pour alimenter le filtre par année)
-    adherentsAnnees: (params = {}) => {
-      const q = new URLSearchParams(params).toString();
-      return request('GET', '/adherents/annees' + (q ? '?' + q : ''));
-    },
     adherent: (id) => request('GET', '/adherents/' + id),
+    adherentHtmlDoc: async (id, kind = 'carte') => {
+      const res = await fetch(`/api/adherents/${encodeURIComponent(id)}/${kind}`, {
+        headers: { Authorization: 'Bearer ' + getToken() },
+      });
+      const ct = res.headers.get('content-type') || '';
+      if (!res.ok) {
+        if (ct.includes('application/json')) {
+          const d = await res.json();
+          throw new Error(d.error || 'Erreur lors de la génération.');
+        }
+        throw new Error('Erreur lors de la génération.');
+      }
+      let html = await res.text();
+      if (!html.includes('<base ')) {
+        html = html.replace('<head>', `<head><base href="${window.location.origin}/" />`);
+      }
+      return html;
+    },
     previewMatricule: (wilaya_code, type_code, annee, bureau_code = '') =>
       request('GET', `/adherents/preview/matricule?wilaya_code=${encodeURIComponent(wilaya_code)}&type_code=${encodeURIComponent(type_code)}&annee=${encodeURIComponent(annee)}&bureau_code=${encodeURIComponent(bureau_code)}`),
     createAdherent: (form) => request('POST', '/adherents', form, true),

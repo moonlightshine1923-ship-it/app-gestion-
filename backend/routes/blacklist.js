@@ -6,7 +6,7 @@ import { logAction } from '../audit.js';
 const router = express.Router();
 
 // Liste blacklist - simplifiée
-router.get('/', authenticate, authorize('admin', 'president'), async (req, res) => {
+router.get('/', authenticate, authorize('admin', 'president', 'perm:blacklist_view', 'perm:blacklist_edit'), async (req, res) => {
   try {
     const { q } = req.query;
     let sql = `
@@ -32,7 +32,7 @@ router.get('/', authenticate, authorize('admin', 'president'), async (req, res) 
 });
 
 // Détail
-router.get('/:id', authenticate, authorize('admin', 'president'), async (req, res) => {
+router.get('/:id', authenticate, authorize('admin', 'president', 'perm:blacklist_view', 'perm:blacklist_edit'), async (req, res) => {
   try {
     const b = await get(`
       SELECT bl.*, u.email as created_by_email
@@ -48,7 +48,7 @@ router.get('/:id', authenticate, authorize('admin', 'president'), async (req, re
 });
 
 // Ajouter
-router.post('/', authenticate, authorize('admin', 'president'), async (req, res) => {
+router.post('/', authenticate, authorize('admin', 'president', 'perm:blacklist_edit'), async (req, res) => {
   try {
     const { adherent_id, nom, prenom, matricule, motif, date_blacklist } = req.body;
     let finalNom = (nom || '').trim();
@@ -80,7 +80,7 @@ router.post('/', authenticate, authorize('admin', 'president'), async (req, res)
 });
 
 // Modifier
-router.patch('/:id', authenticate, authorize('admin', 'president'), async (req, res) => {
+router.patch('/:id', authenticate, authorize('admin', 'president', 'perm:blacklist_edit'), async (req, res) => {
   try {
     const b = await get('SELECT * FROM blacklist WHERE id = ?', [req.params.id]);
     if (!b) return res.status(404).json({ error: 'Entrée blacklist introuvable.' });
@@ -97,7 +97,7 @@ router.patch('/:id', authenticate, authorize('admin', 'president'), async (req, 
 });
 
 // Supprimer
-router.delete('/:id', authenticate, authorize('admin', 'president'), async (req, res) => {
+router.delete('/:id', authenticate, authorize('admin', 'president', 'perm:blacklist_edit'), async (req, res) => {
   try {
     const b = await get('SELECT nom, prenom FROM blacklist WHERE id = ?', [req.params.id]);
     const nameStr = b ? `${b.prenom} ${b.nom}` : `ID ${req.params.id}`;
@@ -109,7 +109,7 @@ router.delete('/:id', authenticate, authorize('admin', 'president'), async (req,
 });
 
 // Route rapide (gardée côté API mais plus utilisée côté front)
-router.post('/adherent/:adherentId', authenticate, authorize('admin', 'president'), async (req, res) => {
+router.post('/adherent/:adherentId', authenticate, authorize('admin', 'president', 'perm:blacklist_edit'), async (req, res) => {
   try {
     const adh = await get('SELECT * FROM adherents WHERE id = ?', [req.params.adherentId]);
     if (!adh) return res.status(404).json({ error: 'Adhérent introuvable.' });
